@@ -1,0 +1,189 @@
+@use "../../styles/mixins" as mixins;
+@use "../../styles/variables" as vars;
+
+.share-ar__container {
+  position: absolute;
+  width: 30%;
+  height: 20%;
+  z-index: 11;
+  @include mixins.radius();
+  max-width: 390px;
+  // border: 1px solid rgba($color: vars.$second-color, $alpha: 0.5);
+
+  background-color: vars.$white-color;
+
+  right: calc(vars.$width-interface + 72px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 30px;
+
+  &-share {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    &__title {
+      font-size: 18px;
+      // @include mixins.h3();
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
+      width: 100%;
+      text-align: center;
+      padding: 10px;
+
+      @include mixins.font-family-second();
+      font-weight: 400;
+      font-size: 18px;
+      line-height: 100%;
+      letter-spacing: 0%;
+      text-align: center;
+      text-transform: uppercase;
+      color: vars.$second-color;
+    }
+
+    &__close {
+      cursor: pointer;
+      display: flex;
+      width: 18px;
+      height: 18px;
+      position: absolute;
+      top: 19px;
+      right: 16px;
+
+      &::after {
+        content: "";
+        background-image: url(../../../public/img/icons/close-icon.svg);
+        background-position: center;
+        background-repeat: no-repeat;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
+    &__bottom {
+      width: 100%;
+      height: 42px;
+      display: flex;
+      justify-content: space-between;
+
+      &__link {
+        padding: 11px 13px;
+        width: 100%;
+        height: 100%;
+        border: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
+        @include mixins.h3();
+        // @include mixins.radius();
+        border-radius: 30px;
+        margin-right: 10px;
+      }
+
+      &__button {
+        cursor: pointer;
+        height: 100%;
+        width: 70px;
+        border: none;
+        outline: 0;
+        background-color: vars.$second-color-1;
+        // @include mixins.radius();
+        border-radius: 30px;
+
+        transition: all 0.3s;
+
+        &::after {
+          content: "";
+          background-image: url(../../../public/img/icons/copy.svg);
+          background-position: center;
+          background-repeat: no-repeat;
+          height: 24px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        &:hover {
+          background-color: rgba($color: vars.$second-color, $alpha: 0.5);
+        }
+      }
+    }
+  }
+}
+
+.ar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .share-ar__container-share__title {
+    border-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    // padding-bott: 0 !important;
+  }
+
+  &__container {
+    position: absolute;
+    width: 30%;
+    z-index: 11;
+    @include mixins.radius();
+
+    background-color: vars.$white-color;
+
+    right: calc(vars.$width-interface + 72px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 30px;
+    max-width: 305px;
+  }
+
+  &__title {
+    font-size: 18px;
+    @include mixins.h3();
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+  }
+
+  &__bottom {
+    width: 250px;
+    height: fit-content;
+    border: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
+    padding: 10px;
+    @include mixins.radius();
+
+    &__qr {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &__close {
+    cursor: pointer;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    top: 19px;
+    right: 16px;
+
+    &::after {
+      content: "";
+      background-image: url(../../../public/img/icons/close-icon.svg);
+      background-position: center;
+      background-repeat: no-repeat;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+}

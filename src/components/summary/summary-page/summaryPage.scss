@@ -1,0 +1,221 @@
+@use "../../../styles/mixins" as mixins;
+@use "../../../styles/variables" as vars;
+
+// disable styles
+#js-summary-image-preview-1 {
+  display: none;
+}
+
+#summary-content {
+  position: absolute;
+  width: 100%;
+  background-color: rgba($color: vars.$second-color, $alpha: 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 36px 30px;
+  height: fit-content;
+}
+
+.color-option {
+  color: vars.$second-color !important;
+}
+
+.sum__page {
+  position: relative;
+  height: fit-content;
+  width: 100%;
+  padding: 30px;
+  border: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
+  background-color: vars.$white-color;
+  max-width: 535px;
+  @include mixins.radius();
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  &__title {
+    @include mixins.font-family-second();
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 100%;
+    letter-spacing: 0%;
+    vertical-align: bottom;
+    text-transform: uppercase;
+    color: vars.$second-color;
+    margin-bottom: 24px;
+  }
+
+  &__close {
+    cursor: pointer;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    top: 40px;
+    right: 21px;
+    transition: all 0.3s;
+
+    &:hover {
+      transform: rotate(180deg);
+    }
+
+    &::after {
+      content: "";
+      background-image: url(../../../../public/img/icons/close-icon.svg);
+      background-position: center;
+      background-repeat: no-repeat;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+
+  &__main-list {
+    width: 100%;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+
+    &__title {
+      text-align: center;
+      @include mixins.font-family-second();
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 100%;
+      letter-spacing: 0%;
+      text-transform: uppercase;
+      border-bottom: 0.5px solid rgba($color: vars.$second-color, $alpha: 0.3);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      color: vars.$second-color;
+    }
+
+    &__info {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+
+      &__title {
+        @include mixins.font-family();
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 120%;
+        letter-spacing: 0%;
+
+        &--el {
+          padding: 20px 0;
+        }
+
+        // &--lil {
+        //   @include mixins.h4();
+        // }
+      }
+
+      &__param {
+        @include mixins.font-family();
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 120%;
+        letter-spacing: 0%;
+        color: vars.$second-color;
+      }
+
+      &__color {
+        width: 40px;
+        height: 20px;
+        @include mixins.radius();
+      }
+    }
+
+    &__item {
+      display: block;
+      gap: 10px;
+      justify-content: space-between;
+      width: 100%;
+
+      &--lil {
+        border: none;
+        padding: 0 0 12px 0;
+
+        &--color {
+          color: vars.$second-color;
+          margin: 5px 0;
+        }
+      }
+    }
+  }
+
+  &__electrical-options {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  &__buttons {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 50px;
+
+    &__button {
+      cursor: pointer;
+      flex: 1;
+      padding: 12px;
+      outline: 0;
+      border: 1px solid vars.$second-color-1;
+      background-color: vars.$second-color-1;
+      color: vars.$white-color;
+      @include mixins.h4();
+      border-radius: 30px;
+      text-align: center;
+      transition: all 0.3s;
+
+      &--contact {
+        margin-left: 30px;
+        margin-right: 30px;
+      }
+
+      &--back {
+        border: 1px solid vars.$second-color-1;
+        background-color: vars.$white-color;
+        color: vars.$second-color-1;
+        padding: 12px 20px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: vars.$second-color-1 !important;
+          color: vars.$white-color !important;
+          transform: translateY(-3px);
+        }
+      }
+
+      &:hover {
+        background-color: vars.$white-color;
+        color: vars.$second-color;
+        transform: translateY(-3px);
+      }
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    // filter: grayscale(100%);
+  }
+
+  #js-summary-image-preview-1 {
+    width: 50%;
+  }
+}

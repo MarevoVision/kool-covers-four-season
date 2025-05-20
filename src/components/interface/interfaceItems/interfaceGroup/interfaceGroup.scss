@@ -1,0 +1,49 @@
+@use "../../../../styles/variables" as vars;
+
+.interface__group {
+  cursor: pointer;
+  width: 100%;
+
+  &__head {
+    padding: 22px 0;
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    border-bottom: 0.5px solid rgba($color: vars.$second-color, $alpha: 0.7);
+
+    &__param {
+      cursor: pointer;
+      color: vars.$second-color;
+      display: flex;
+
+      &::after {
+        content: "";
+        transition: all 0.3s;
+        display: block;
+        background-image: url(/public/img/icons/arrow_down_header.svg);
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        height: 100%;
+        width: 13px;
+        margin-left: 10px;
+      }
+    }
+
+    &__param-rotated::after {
+      transform: rotate(180deg) !important;
+    }
+  }
+
+  &__inputs {
+    padding: vars.$padding-vertical-group-inputs 6px 30px 6px;
+
+    & > :not(:last-child) {
+      margin-bottom: 20px;
+    }
+  }
+}
+
+.interface__group:last-child {
+  margin-bottom: 40px;
+}

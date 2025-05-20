@@ -1,0 +1,53 @@
+<div class="mainContent-3DArea" id="ar_model_viewer">
+  <canvas
+    class="ar_model_view"
+    id="ar_model_view"
+    data-engine="three.js r146"
+    width="819"
+    height="819"
+    style="touch-action: none"
+  >
+  </canvas>
+
+  <div class="canvas_buttons">
+    <div class="input_time_switch">
+      <input type="checkbox" id="switchButton-time" class="checkbox-time" />
+    </div>
+<!-- 
+    <div id="js-toggleDayNight" class="switch-container">
+      <label class="switch">
+        Day
+        <input type="radio" name="mode" id="daySwitch" checked />
+        <span class="slider"></span>
+      </label>
+
+      <label class="switch">
+        Night
+        <input type="radio" name="mode" id="nightSwitch" />
+        <span class="slider"></span>
+      </label>
+    </div> -->
+
+    <div class="container_shareAR">
+      <button id="js-showModalShare" class="btn btn_small">
+        <span class="icon icon-share"></span>
+        Share
+      </button>
+
+      <button id="js-showModalQRcode" class="btn btn_small btn_white">
+        <span class="icon icon-ar"></span>
+        AR
+      </button>
+    </div>
+  </div>
+
+  <div class="tumbler__container">
+    <div id="tumbler_label" class="tumbler__label"></div>
+
+    <div id="tumbler_night" class="tumbler-wrapper">
+      <div class="tumbler"></div>
+    </div>
+  </div>
+
+  <div class="full-screen"></div>
+</div>

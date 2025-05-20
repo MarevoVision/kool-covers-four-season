@@ -1,0 +1,326 @@
+@use "../../styles/variables" as vars;
+@use "../../styles/mixins" as mixins;
+
+$primary-color: #007bff;
+
+.switch-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.switch-container-sign {
+  width: 17px;
+  height: 5px;
+  background-color: var(vars.$second-color);
+  border-radius: 2px;
+  transform: translateX(25%) rotate(90deg);
+}
+
+.switch-container-sign--right {
+  transform: rotate(0deg);
+}
+
+.input_time_switch {
+  cursor: pointer;
+  position: absolute;
+  left: 30px;
+  top: 5px;
+}
+
+#switchButton-time {
+  width: 41px;
+  height: 23px;
+  border-radius: 100px;
+  border: 1px solid vars.$second-color;
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  right: inherit;
+  -webkit-appearance: none;
+}
+
+#switchButton-time::after {
+  content: "";
+  position: absolute;
+  display: flex;
+  height: 80%;
+  width: 45%;
+  border-radius: 50%;
+  background-color: vars.$white-color;
+  justify-content: center;
+  background-image: url(/public/img/icons/sun.svg);
+  align-items: center;
+  right: 4%;
+  border: 1px solid vars.$second-color;
+  background-size: contain;
+}
+
+#switchButton {
+  width: 33px;
+  height: 17px;
+  border: none;
+  outline: 0;
+  -webkit-appearance: none;
+  background-color: vars.$second-color;
+  border-radius: 100px;
+  position: relative;
+  align-items: center;
+  display: flex;
+  cursor: pointer;
+}
+
+#switchButton::after {
+  content: "";
+  position: absolute;
+  display: flex;
+  height: 90%;
+  width: 45%;
+  border-radius: 50%;
+  background-color: vars.$white-color;
+  align-items: center;
+  right: 5%;
+}
+
+.switchButton-active::after {
+  left: 5%;
+}
+
+.container_shareAR {
+  display: flex;
+  position: fixed;
+}
+
+.model-viewer-container {
+  position: relative;
+  flex: 1;
+}
+
+#ar_model_view {
+  width: 100%;
+  height: 100%;
+}
+
+.mainContent-3DArea {
+  width: 100%;
+  height: 100vh;
+}
+
+.canvas_buttons {
+  position: absolute;
+  top: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  //   button {
+  //     transform: translateY(50%);
+  //   }
+}
+
+#js-toggleDayNight {
+  cursor: pointer;
+  display: flex;
+  width: fit-content;
+  background: none;
+  outline: 0;
+  border: 1px solid vars.$second-color !important;
+  border-radius: 30px;
+  height: fit-content;
+  padding: 4px;
+  color: vars.$second-color;
+
+  @include mixins.font-family();
+  position: absolute;
+  left: 30px;
+
+  & > :first-child {
+    margin-right: 8px;
+  }
+
+  label {
+    cursor: pointer;
+    border: 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: content-box;
+    transition: all 0.3s;
+    min-width: 40px;
+
+    color: vars.$second-color;
+    @include mixins.bold;
+
+    &:hover {
+      background-color: rgba($color: vars.$second-color, $alpha: 0.3);
+    }
+  }
+
+  .night-mode {
+    background-color: vars.$white-color;
+    color: vars.$second-color !important;
+
+    &:hover {
+      background-color: rgba($color: vars.$white-color, $alpha: 1);
+    }
+  }
+
+  .day-mode {
+    background-color: vars.$second-color;
+    color: vars.$white-color !important;
+
+    &:hover {
+      background-color: rgba($color: vars.$black-color-second, $alpha: 0.5);
+    }
+  }
+}
+
+.switch--hight {
+  border: 1px solid vars.$white-color !important;
+  color: vars.$white-color !important;
+  background-color: vars.$second-color !important;
+
+  .switch {
+    color: vars.$white-color !important;
+  }
+}
+
+#js-showModalShare {
+  cursor: pointer;
+  display: flex;
+  background: none;
+  outline: 0;
+  border: none;
+  text-transform: capitalize;
+  transform: translateY(50%);
+
+  @include mixins.font-family();
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 17px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  transition: all 0.3s;
+  color: vars.$second-color;
+  margin-right: 30px;
+
+  &::before {
+    content: "";
+    background-image: url(../../../public/img/icons/share.svg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    width: 18px;
+    height: 100%;
+    display: flex;
+    margin-right: 8px;
+  }
+
+  &:hover {
+    opacity: 0.5;
+  }
+}
+
+#js-showModalQRcode {
+  cursor: pointer;
+  background: none;
+  display: flex;
+  outline: 0;
+  border: none;
+  text-transform: capitalize;
+  color: vars.$second-color;
+  transform: translateY(50%);
+
+  @include mixins.font-family();
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 17px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  transition: all 0.3s;
+
+  &::before {
+    content: "";
+    background-image: url(../../../public/img/icons/Ar.svg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    width: 18px;
+    height: 100%;
+    display: flex;
+    margin-right: 8px;
+  }
+
+  &:hover {
+    opacity: 0.5;
+  }
+}
+
+.full-screen {
+  position: absolute;
+  bottom: 70px;
+  left: 30px;
+  transition: all 0.3s;
+  cursor: pointer;
+
+  &::after {
+    content: "";
+    background-image: url(../../../public/img/icons/fullscreen_min.svg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    position: absolute;
+    width: 32px;
+    height: 32px;
+  }
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+.share-white {
+  color: vars.$white-color !important;
+  &::before {
+    background-image: url(../../../public/img/icons/share-white.svg) !important;
+  }
+}
+
+.ar-white {
+  color: vars.$white-color !important;
+  &::before {
+    background-image: url(../../../public/img/icons/ar-white.svg) !important;
+  }
+}
+
+.full-screen-white {
+  &::after {
+    background-image: url(../../../public/img/icons/full-screen-white.svg) !important;
+  }
+}
+
+.sun__icon--night {
+  border-color: vars.$white-color !important;
+
+  &::after {
+    color: vars.$white-color !important;
+  }
+}
+
+.light-n {
+  background-image: url(../../../public/img/icons/sun-icon.svg) !important;
+}
+
+.screen-n {
+  background-image: url(../../../public/img/icons/screen-white.png) !important;
+}
+
+.shades-n {
+  background-image: url(../../../public/img/icons/shades-white.svg) !important;
+}
+
+.heaters-n {
+  background-image: url(../../../public/img/icons/heaters-n.svg) !important;
+}

@@ -1,0 +1,162 @@
+@use "./variables" as vars;
+@use "./mixins" as mix;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Barlow", serif;
+  font-weight: 200;
+  font-style: normal;
+  overflow: hidden;
+}
+
+.body-overflow-auto {
+  overflow: auto !important;
+}
+
+.main-content {
+  display: flex;
+  height: calc(var(--vh) * 100) !important;
+  width: 100%;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  &-bg {
+    &::after {
+      content: "";
+      width: 100%;
+      height: 100%;
+      background-color: vars.$second-color;
+      display: flex;
+      position: absolute;
+      opacity: 0.3;
+      z-index: 0;
+    }
+  }
+
+  // &::after {
+  //  background-image: url(../../public/img/icons/loader.webm);
+  // }
+}
+
+h2 {
+  @include mix.h2();
+}
+
+.hide-visible {
+  visibility: hidden;
+  display: none;
+}
+
+input {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+form {
+  & > .option:hover {
+    transition: all 0.3s;
+    transform: translateY(-3px);
+  }
+}
+
+.hotspot {
+  position: absolute;
+  width: 90px;
+  height: 75px;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.hotspot:hover {
+  transform: scale(1.2);
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-loader {
+  &::after {
+    content: "";
+    background-image: url(../../public/img/loader.gif);
+    background-size: 500px;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    z-index: 999999;
+    top: 0;
+    background-color: vars.$white-color;
+  }
+}
+
+.footer-h {
+  display: none;
+}
+
+//#region AR
+#ar-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 60px;
+  animation: 2s ease-in-out 0s infinite alternate none running elongate;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-delay: 0s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-fill-mode: none;
+  animation-play-state: running;
+  animation-name: elongate;
+  display: none;
+}
+
+@keyframes elongate {
+  from {
+    transform: translateX(100px);
+  }
+  to {
+    transform: translateX(-100px);
+  }
+}
+
+@keyframes circle {
+  from {
+    transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
+  }
+  to {
+    transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg);
+  }
+}
+
+#ar-prompt > img {
+  animation: circle 4s linear infinite;
+}
+
+model-viewer {
+  width: 100%;
+  height: 100%;
+}
+//#endregion
