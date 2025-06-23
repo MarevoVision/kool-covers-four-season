@@ -80,6 +80,10 @@ import {
 } from "./settings";
 
 import { interfaceComponent } from "../components/Interface/interface";
+import {
+  updateMaterialMap,
+  updateTextParam,
+} from "../components/Interface/interfaceItems/interfaceGroup/interfaceGroupInputs/interfaceGroupInputs";
 import { countLeds } from "../components/summary/summary-page/summaryPage";
 import {
   animateScale,
@@ -101,7 +105,8 @@ import {
   updateRenderSize,
 } from "./3d-scene";
 import { initSubSystem } from "./customFunctions/initiSubSystem";
-import { updateMaterialMap } from "../components/Interface/interfaceItems/interfaceGroup/interfaceGroupInputs/interfaceGroupInputs";
+import { Vec3 } from "cannon-es";
+import { preloadTextures, setMaterialTexture, TEXTURES } from "./utils";
 
 const DEBUG_MODE_VALUES = false;
 export let modelForExport = null;
@@ -160,6 +165,7 @@ export const labelObjects = {
   },
 };
 
+var offsetZOverhang = -0.22;
 export let currentOS = "unknown";
 let delayForWriteURL = false;
 let parametersKey = "config";
@@ -246,6 +252,96 @@ async function wix_contactForm() {
 
 var isRedirectionProject = false;
 
+const PergolaPostHeadtype = {
+  single: 0,
+  double: 1,
+  louvered: 2,
+};
+
+const PergolaPostPlace = {
+  FL: 0,
+  FR: 1,
+  RL: 2,
+  RR: 3,
+  Front: 4,
+  Back: 5,
+  Left: 6,
+  Right: 7,
+  Center: 8,
+};
+
+const PergolaSide = {
+  Front: 0,
+  Back: 1,
+  Left: 2,
+  Right: 3,
+  Center: 4,
+};
+
+const PergolaRoofRafters = {
+  single: 0,
+  double: 1,
+};
+
+const PergolaRoofSpacing = {
+  _2inch: 0,
+  _3inch: 1,
+  _4inch: 2,
+};
+
+const PergolaRoofObjectType = {
+  frame: 0,
+  roof: 1,
+  skylight: 2,
+  rails: 3,
+  louver: 4,
+  gutter: 5,
+};
+
+const PergolaRoofPercentage = {
+  _50percent: 0,
+  _70percent: 1,
+};
+
+const PergolaPostSize = {
+  _4inch: 0,
+  _7inch: 1,
+  _8inch: 2,
+  _10inch: 3,
+  _12inch: 4,
+};
+
+const PergolaRoofOverhang = {
+  _12inch: 0,
+  _16inch: 1,
+  _20inch: 2,
+  _24inch: 3,
+};
+
+const PergolaRoofThickness = {
+  _2x2: 0,
+  _2x3: 1,
+  _3inch: 2,
+  _4inch: 3,
+  _6inch: 4,
+};
+
+const PergolaRoofWrapkit = {
+  _2x6: 0,
+  _3x8: 1,
+};
+
+const PergolaRoofSolidPanels = [
+  "_0_plank",
+  "_1_plank",
+  "_2_plank",
+  "_3_plank",
+  "_4_plank",
+  "_5_plank",
+  "_6_plank",
+  "_7_plank",
+];
+
 export const pergolaConst = {
   structureColorType: {
     // Standard: +structureColorTypeStandard_option.split("-")[1],
@@ -301,7 +397,7 @@ export const pergolaConst = {
   },
   optionNameString: {
     fans: "Fan",
-    LEDRampLight: "LED Ramp Light",
+    LEDRampLight: "LED lights",
     LEDRecessed: "LED Recessed",
     LEDStrip: "LED Strip",
   },
@@ -453,7 +549,11 @@ function initRaycast() {
 
       if (intersects.length > 0) {
         const intersectedObject = intersects[0].object;
-        console.log(`CLICKED: ${intersectedObject.name}`);
+        console.log(
+          `CLICKED: ${intersectedObject.parentSpan}, avatar:${intersectedObject.name}`
+        );
+
+        state.lastSpan = intersectedObject.parentSpan;
 
         const clickedSpan = intersectedObject.parentSpan;
         pergola && pergola.editSystem(clickedSpan);
@@ -479,107 +579,56 @@ function getVisibleClickableObjects(objects = []) {
 
 // #endregion
 
-export async function toggleBackWall(toggle) {
-  const bigWall = GetGroup("wall_back001");
-  const smallWall = GetGroup("wall_back");
-
-  // #region turn OFF
-  bigWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-
-  smallWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-  //  #endregion
-
-  const wallBackGroup = !state.typePergola ? smallWall : bigWall;
-
-  wallBackGroup.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = toggle;
-      }
-    });
-  });
-}
-
 function mirrorObject(object, value = true) {
   if (object) object.scale.x = value ? -1 : 1;
 }
 
-export async function toggleLeftWall(toggle) {
-  const bigWall = GetGroup("wall_L001");
-  const smallWall = GetGroup("wall_L");
+export async function toggleBackWall(toggle) {
+  const backWall = GetGroup("wall_back");
 
   // #region turn OFF
-  bigWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-
-  smallWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-  //  #endregion
-
-  const wallBackGroup = !state.typePergola ? smallWall : bigWall;
-
-  wallBackGroup.children.forEach((group) => {
+  backWall.children.forEach((group) => {
     group.traverse((object) => {
       if (object.isMesh) {
         object.visible = toggle;
       }
     });
   });
+
+  pergola.checkSystemsInScene();
+  //  #endregion
+}
+
+export async function toggleLeftWall(toggle) {
+  const lefWall = GetGroup("wall_L");
+
+  // #region turn OFF
+  lefWall.children.forEach((group) => {
+    group.traverse((object) => {
+      if (object.isMesh) {
+        object.visible = toggle;
+      }
+    });
+  });
+
+  pergola.checkSystemsInScene();
+  //  #endregion
 }
 
 export async function toggleRightWall(toggle) {
-  const bigWall = GetGroup("wall_R001");
-  const smallWall = GetGroup("wall_R");
+  const rightWall = GetGroup("wall_R");
 
   // #region turn OFF
-  bigWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-
-  smallWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = false;
-      }
-    });
-  });
-  //  #endregion
-
-  const wallBackGroup = !state.typePergola ? smallWall : bigWall;
-
-  wallBackGroup.children.forEach((group) => {
+  rightWall.children.forEach((group) => {
     group.traverse((object) => {
       if (object.isMesh) {
         object.visible = toggle;
       }
     });
   });
+
+  pergola.checkSystemsInScene();
+  //  #endregion
 }
 
 export function toggleLoad(toggle) {
@@ -609,6 +658,8 @@ async function StartSettings() {
   theModel.scale.set(0, 0, 0);
   theModel.visible = true;
   animateScale(theModel);
+
+  await preloadTextures();
 
   isFirstStart = false;
 
@@ -1795,82 +1846,20 @@ function PrepareAR() {
 }
 
 async function OpenAR() {
-  console.log("start");
+  InitMorphModel(theModel);
 
-  if (init) {
-    console.log("open", scene, pergola, theModel, modelForExport);
+  ComputeMorphedAttributes();
 
-    InitMorphModel(theModel);
-
-    ComputeMorphedAttributes();
-
-    // //Remove wall
-    // if (pergola != null) {
-    //   if (pergolaSettings.mountingWall_Back) {
-    //     pergola.changeMountingWallVisibility(
-    //       false,
-    //       PergolaElementOrientSide.Back
-    //     );
-    //   }
-
-    //   if (pergolaSettings.mountingWall_Left) {
-    //     pergola.changeMountingWallVisibility(
-    //       false,
-    //       PergolaElementOrientSide.Left
-    //     );
-    //   }
-
-    //   if (pergolaSettings.mountingWall_Right) {
-    //     pergola.changeMountingWallVisibility(
-    //       false,
-    //       PergolaElementOrientSide.Right
-    //     );
-    //   }
-    // }
-
-    await ImportScene(scene);
-
-    // if (getMobileOperatingSystem() == "iOS") {
-    //   if (pergola != null) {
-    //     if (pergolaSettings.mountingWall_Back) {
-    //       pergola.changeMountingWallVisibility(
-    //         pergolaSettings.mountingWall_Back,
-    //         PergolaElementOrientSide.Back,
-    //         true
-    //       );
-    //     }
-    //     if (pergolaSettings.mountingWall_Left) {
-    //       pergola.changeMountingWallVisibility(
-    //         pergolaSettings.mountingWall_Left,
-    //         PergolaElementOrientSide.Left,
-    //         true
-    //       );
-    //     }
-    //     if (pergolaSettings.mountingWall_Right) {
-    //       pergola.changeMountingWallVisibility(
-    //         pergolaSettings.mountingWall_Right,
-    //         PergolaElementOrientSide.Right,
-    //         true
-    //       );
-    //     }
-    //   }
-    // }
-
-    init = false;
-  }
-
-  console.log("end");
+  await ImportScene(scene);
 }
 
 // eslint-disable-next-line no-unused-vars
 export function OpenARorQR() {
-  console.log("click AR");
   if (["Android", "iOS", "VisionPro"].includes(currentOS)) {
     OpenAR();
     return;
   }
 
-  console.log("QR");
   CreateQR();
 
   $("#ar").show();
@@ -1878,7 +1867,6 @@ export function OpenARorQR() {
 
 //IMPORT
 async function ImportScene(newScene) {
-  console.log(modelViewer[0], newScene);
   await modelViewer[0].importScene(newScene);
   modelViewer[0].activateAR();
 }
@@ -2276,12 +2264,14 @@ async function waitForValueChange(input, result, callback) {
 
 function Shader_ChangeVertexToWorldpos(object) {
   var vUvSymbol = "vUv";
+  var vUvSymbolNormal = "vUv";
   var uvTransformSymbol = "uvTransform";
 
-  if (THREE.REVISION >= 150) {
-    vUvSymbol = "vMapUv";
-    uvTransformSymbol = "mapTransform";
-  }
+  // if(THREE.REVISION >= 150){
+  vUvSymbol = "vMapUv";
+  vUvSymbolNormal = "vNormalMapUv";
+  uvTransformSymbol = "mapTransform";
+  // }
 
   promiseDelayShaderSettings(500, object, () => {
     if (object.isMesh) {
@@ -2293,7 +2283,15 @@ function Shader_ChangeVertexToWorldpos(object) {
                 .replace("#include <uv_vertex>\n", "")
                 .replace(
                   "#include <worldpos_vertex>",
-                  `vec4 worldPosition = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\nworldPosition = instanceMatrix * worldPosition;\n#endif\nworldPosition = modelMatrix * worldPosition;\n${vUvSymbol} = (${uvTransformSymbol} * vec3(worldPosition.xz, 1)).xy;`
+                  `
+                    vec4 worldPosition = vec4( transformed, 1.0 );
+                    #ifdef USE_INSTANCING
+                    worldPosition = instanceMatrix * worldPosition;
+                    #endif
+                    worldPosition = modelMatrix * worldPosition;
+                    ${vUvSymbol} = (${uvTransformSymbol} * vec3(worldPosition.xz, 1)).xy;
+                    ${vUvSymbolNormal} = (${uvTransformSymbol} * vec3(worldPosition.xz, 1)).xy;
+                  `
                 );
             };
           } else if (object.material.name.includes("_Y")) {
@@ -2302,7 +2300,15 @@ function Shader_ChangeVertexToWorldpos(object) {
                 .replace("#include <uv_vertex>\n", "")
                 .replace(
                   "#include <worldpos_vertex>",
-                  `vec4 worldPosition = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\nworldPosition = instanceMatrix * worldPosition;\n#endif\nworldPosition = modelMatrix * worldPosition;\n${vUvSymbol} = (${uvTransformSymbol} * vec3(worldPosition.xy, 1)).xy;`
+                  `
+                    vec4 worldPosition = vec4( transformed, 1.0 );
+                    #ifdef USE_INSTANCING
+                    worldPosition = instanceMatrix * worldPosition;
+                    #endif
+                    worldPosition = modelMatrix * worldPosition;
+                    ${vUvSymbol} = (${uvTransformSymbol} * vec3(worldPosition.xy, 1)).xy;
+                    ${vUvSymbolNormal} = (${uvTransformSymbol} * vec3(worldPosition.xy, 1)).xy;
+                  `
                 );
             };
           } else if (object.material.name.includes("_X")) {
@@ -2311,7 +2317,20 @@ function Shader_ChangeVertexToWorldpos(object) {
                 .replace("#include <uv_vertex>\n", "")
                 .replace(
                   "#include <worldpos_vertex>",
-                  `vec4 worldPosition = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\nworldPosition = instanceMatrix * worldPosition;\n#endif\nworldPosition = modelMatrix * worldPosition;\n${vUvSymbol} = (${uvTransformSymbol} * vec3(worldPosition.yz, 1)).xy;`
+                  `
+                    vec4 worldPosition = vec4( transformed, 1.0 );
+                    #ifdef USE_INSTANCING
+                    worldPosition = instanceMatrix * worldPosition;
+                    #endif
+                    worldPosition = modelMatrix * worldPosition;
+
+                    // Поворот текстури на 90 градусів
+                    mat2 rotation = mat2(0.0, 1.0, -1.0, 0.0);
+                    vec2 rotatedUV = rotation * vec2(worldPosition.y, worldPosition.z);
+    
+                    ${vUvSymbol} = (${uvTransformSymbol} * vec3(rotatedUV, 1)).xy;
+                    ${vUvSymbolNormal} = (${uvTransformSymbol} * vec3(rotatedUV, 1)).xy;
+                  `
                 );
             };
           }
@@ -2724,8 +2743,11 @@ export class PergolaObject {
     this.heatersFront = [];
     this.heatersBack = [];
     this.fans = [];
-    this.fansBeamX = [];
+    this.fansBeam = [];
     this.fansBeamY = [];
+    this.leds = [];
+    this.ledsDifSide = [];
+    this.pointXforSkylight = [];
   }
 
   createFrom3DModel(model) {
@@ -2777,7 +2799,17 @@ export class PergolaObject {
         this.mountingWall.elements.push(mountingWall);
       }
 
-      // Fan
+      //* Option Beam
+      if (o.name === "beam") {
+        const beam = new PergolaExtraOptionElement();
+
+        beam.type = PergolaExtraOptionType.beam;
+        beam.object = o;
+
+        this.extraOptions.elements.push(beam);
+      }
+
+      //* Fan
       if (o.name.includes("fan")) {
         var fan = new PergolaExtraOptionElement();
 
@@ -2787,58 +2819,107 @@ export class PergolaObject {
         this.extraOptions.elements.push(fan);
       }
 
-      // Heater
-      if (o.name.includes("UFO")) {
-        var heater = new PergolaExtraOptionElement();
+      //* LED
+      if (o.name.includes("flushmount_lights")) {
+        var light = new PergolaExtraOptionElement();
 
-        heater.type = PergolaExtraOptionType.heater;
-        heater.object = o;
+        light.type = PergolaExtraOptionType.light;
+        light.object = o;
 
-        this.extraOptions.elements.push(heater);
-      }
-
-      // Point Light
-      if (o.name.includes("point-light")) {
-        var pointLight = new PergolaExtraOptionElement();
-
-        pointLight.type = PergolaExtraOptionType.light;
-        pointLight.object = o;
-
-        this.extraOptions.elements.push(pointLight);
-      }
-
-      // LED Strip
-      if (o.name.includes("frame") && o.name.includes("LED")) {
-        const ledLight = new PergolaExtraOptionElement();
-
-        ledLight.type = PergolaExtraOptionType.led;
-        ledLight.object = o;
-
-        this.extraOptions.elements.push(ledLight);
-      }
-
-      // LED Strip MOOD LIGHTING
-      if (o.name.includes("frame") && o.name.includes("001")) {
-        const ledMood = new PergolaExtraOptionElement();
-
-        ledMood.type = PergolaExtraOptionType.moodLed;
-        ledMood.object = o;
-
-        this.extraOptions.elements.push(ledMood);
+        this.extraOptions.elements.push(light);
       }
     });
 
     // ROOF
-    var roofTypeLouvered = new PergolaRoofTypeLouvered();
+    //* SOLID
+    const roofTypeSolid = new PergolaRoofTypeSolid();
+
     model.traverse((o) => {
-      if (o.name.includes("louver") && !o.name.includes("frame")) {
-        var louveredObject = new PergolaRoofTypeLouveredObject();
-        louveredObject.object = o;
-        roofTypeLouvered.objects.push(louveredObject);
+      if (o.name.includes("solid_roof")) {
+        if (o.name.includes("_frame")) {
+          const solidObject = new PergolaRoofTypeSolidObject();
+          solidObject.name = o.name;
+          solidObject.type = PergolaRoofObjectType.frame;
+          solidObject.object = o;
+          roofTypeSolid.frames.push(solidObject);
+        } else {
+          var solidObject = new PergolaRoofTypeSolidObject();
+          solidObject.name = o.name;
+          solidObject.type = PergolaRoofObjectType.roof;
+          solidObject.object = o;
+          roofTypeSolid.objects.push(solidObject);
+
+          if (o.name.includes("_0,75")) {
+            solidObject.planks = 7;
+            solidObject.plank8inch = null;
+          }
+          if (o.name.includes("_0,5")) {
+            solidObject.planks = 0;
+            solidObject.plank8inch = null;
+          }
+          if (o.name.includes("_1")) {
+            solidObject.planks = 1;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_2")) {
+            solidObject.planks = 2;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_3")) {
+            solidObject.planks = 3;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_4")) {
+            solidObject.planks = 4;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_5")) {
+            solidObject.planks = 5;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_6")) {
+            solidObject.planks = 6;
+            solidObject.plank8inch = true;
+          }
+          if (o.name.includes("_flat")) {
+            solidObject.plank8inch = false;
+          }
+          if (o.name.includes("_L")) {
+            solidObject.direction = PergolaSide.Left;
+            solidObject.plank8inch = null;
+          }
+          if (o.name.includes("_R")) {
+            solidObject.direction = PergolaSide.Right;
+            solidObject.plank8inch = null;
+          }
+        }
+      } else if (o.name.includes("skylight")) {
+        const solidObject = new PergolaRoofTypeSolidObject();
+        solidObject.name = o.name;
+        solidObject.type = PergolaRoofObjectType.skylight;
+        solidObject.plank8inch = null;
+        solidObject.object = o;
+        roofTypeSolid.objects.push(solidObject);
+      } else if (o.name.includes("rain_front")) {
+        const solidObject = new PergolaRoofTypeSolidObject();
+        solidObject.name = o.name;
+        solidObject.type = PergolaRoofObjectType.gutter;
+        solidObject.side = PergolaSide.Front;
+        solidObject.plank8inch = null;
+        solidObject.object = o;
+        roofTypeSolid.objects.push(solidObject);
+      } else if (o.name.includes("rain_back")) {
+        const solidObject = new PergolaRoofTypeSolidObject();
+        solidObject.name = o.name;
+        solidObject.type = PergolaRoofObjectType.gutter;
+        solidObject.side = PergolaSide.Back;
+        solidObject.plank8inch = null;
+        solidObject.object = o;
+        roofTypeSolid.objects.push(solidObject);
       }
     });
 
-    this.roof.louvered = roofTypeLouvered;
+    this.roof.solid = roofTypeSolid;
 
     //* SYSTEM
     const systemElements = {
@@ -2877,17 +2958,20 @@ export class PergolaObject {
     this.preparePosts();
     this.prepareRoof();
     this.prepareOptions();
-    this.animateFans();
+    this.prepareSolid();
     // this.prepareFrames();
-    this.prepareLouvereds();
+    // this.prepareLouvereds();
     this.prepareSystems();
     this.prepareSpans();
+    this.prepareExtraOptions();
     updateHotspots(hotspots);
     // this.cloneMaterialTexture("wall");
     // this.cloneMaterialTexture("wall_side");
     // this.cloneMaterialTexture("wall_tile");
 
     ParseMorphByModel(model);
+
+    this.animateFans();
 
     setTimeout(() => {
       state.currentActiveSystems = null;
@@ -2897,18 +2981,146 @@ export class PergolaObject {
     this.update();
   }
 
+  prepareSolid() {
+    const roofElementQty = Math.floor(
+      this.getMeters(MORPH_DATA.width.max) /
+        state.solidRoofElementWidth_m._6_plank
+    );
+    const skylightQty =
+      Math.floor(
+        this.getMeters(MORPH_DATA.width.max) /
+          (state.solidRoofElementWidth_m._6_plank * 3 +
+            state.solidRoofSkylightWidth_m)
+      ) - 1;
+
+    this.cloneSolidObject(
+      PergolaRoofObjectType.roof,
+      6,
+      true,
+      null,
+      roofElementQty
+    );
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 5, true, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 4, true, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 3, true, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 2, true, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 1, true, null, 1);
+    this.cloneSolidObject(
+      PergolaRoofObjectType.roof,
+      6,
+      false,
+      null,
+      roofElementQty
+    );
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 5, false, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 4, false, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 3, false, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 2, false, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 1, false, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 0, null, null, 1);
+    this.cloneSolidObject(PergolaRoofObjectType.roof, 7, null, null, 1);
+    this.cloneSolidObject(
+      PergolaRoofObjectType.skylight,
+      null,
+      null,
+      null,
+      skylightQty
+    );
+    this.cloneSolidObject(
+      PergolaRoofObjectType.gutter,
+      null,
+      null,
+      PergolaSide.Front,
+      1
+    );
+    this.cloneSolidObject(
+      PergolaRoofObjectType.gutter,
+      null,
+      null,
+      PergolaSide.Back,
+      1
+    );
+  }
+
+  cloneSolidObject(type, planks, plank8inch, side, count) {
+    const element = this.roof.solid.objects.find(
+      (item) =>
+        item.type == type &&
+        item.planks == planks &&
+        item.plank8inch == plank8inch &&
+        item.side == side
+    );
+
+    if (element == null) {
+      return;
+    }
+
+    for (let index = 0; index < count; index++) {
+      const clonedMesh = element.object.clone();
+      clonedMesh.visible = false;
+
+      const parent = scene.getObjectByName("Scene");
+
+      if (parent != null) {
+        parent.add(clonedMesh);
+      } else {
+        scene.add(clonedMesh);
+      }
+
+      const solidObject = new PergolaRoofTypeSolidObject();
+      solidObject.name = element.name;
+      solidObject.type = type;
+      solidObject.planks = planks;
+      solidObject.plank8inch = plank8inch;
+      solidObject.side = side;
+      solidObject.object = clonedMesh;
+
+      this.roof.solid.objects.push(solidObject);
+    }
+  }
+
   preparePosts() {
     const countPosts = 40;
 
     // const qtyMiddlePostsWidth = Math.floor(
-    //   this.settings.maxWidth / minInterval
+    //   MORPH_DATA.width.max / minInterval
     // );
 
-    this.clonePostObject(countPosts, "leftCenter");
-    this.clonePostObject(countPosts, "rightCenter");
-    this.clonePostObject(countPosts, "frontCenter");
-    this.clonePostObject(countPosts, "backCenter");
-    this.clonePostObject(countPosts, "centerCenter");
+    this.clonePostObject(countPosts, "post3x3");
+    this.clonePostObject(countPosts, "post3x3Left");
+    this.clonePostObject(countPosts, "post3x3Right");
+    this.clonePostObject(countPosts, "post3x3Back");
+    this.clonePostObject(countPosts, "post3x3Front");
+
+    this.clonePostObject(countPosts, "postSquare");
+    this.clonePostObject(countPosts, "postSquareLeft");
+    this.clonePostObject(countPosts, "postSquareRight");
+    this.clonePostObject(countPosts, "postSquareBack");
+    this.clonePostObject(countPosts, "postSquareFront");
+
+    this.clonePostObject(countPosts, "postRound");
+    this.clonePostObject(countPosts, "postRoundLeft");
+    this.clonePostObject(countPosts, "postRoundRight");
+    this.clonePostObject(countPosts, "postRoundBack");
+    this.clonePostObject(countPosts, "postRoundFront");
+
+    this.clonePostObject(countPosts, "postHeadsOne");
+    this.clonePostObject(countPosts, "postHeadsOneLeft");
+    this.clonePostObject(countPosts, "postHeadsOneRight");
+    this.clonePostObject(countPosts, "postHeadsOneBack");
+    this.clonePostObject(countPosts, "postHeadsOneFront");
+
+    this.clonePostObject(countPosts, "postHeadsTwo");
+    this.clonePostObject(countPosts, "postHeadsTwoLeft");
+    this.clonePostObject(countPosts, "postHeadsTwoRight");
+    this.clonePostObject(countPosts, "postHeadsTwoBack");
+    this.clonePostObject(countPosts, "postHeadsTwoFront");
+
+    this.clonePostObject(countPosts, "rainFront");
+    this.clonePostObject(countPosts, "rainBack");
+
+    this.clonePostObject(2, "rainCornerFront");
+    this.clonePostObject(2, "rainCornerBack");
   }
 
   getMeters(feet) {
@@ -2921,16 +3133,18 @@ export class PergolaObject {
     const offsetZ = 0;
 
     const qtyWidth = Math.floor(state.width / state.postWidthInterval);
+    const qtyLength = Math.floor(state.length / state.postDepthInterval);
 
     const qtyWidthLouver = Math.floor(state.width / state.louverInterval);
     const qtyLengthLouver = Math.floor(state.length / state.louverInterval);
 
-    const qtyLength = Math.floor(state.length / state.postDepthInterval);
-
-    const { FL_point, FR_point, RR_point } = this.getCornerPoints();
+    // Викликаємо з офсетами
+    const { FL_point, FR_point, RR_point } = this.getCornerPoints(
+      xOffset ?? offsetX,
+      zOffset ?? offsetZ
+    );
 
     const point_post_width = generateMidpoints(FL_point, FR_point, qtyWidth);
-
     const point_louver_width = generateMidpoints(
       FL_point,
       FR_point,
@@ -2949,6 +3163,137 @@ export class PergolaObject {
       point_louver_width,
       point_post_length,
       point_louver_length,
+    };
+  }
+
+  getPostPointsCombo() {
+    let offsetX = 0;
+    let offsetZ = 0;
+    let overhangValue = 0;
+
+    switch (this.settings.roofOverhang) {
+      case PergolaRoofOverhang._12inch:
+        offsetX = 12 * 0.0254;
+        offsetZ = 12 * 0.0254;
+        overhangValue = this.interpolateValue(12, 12, 24);
+        break;
+
+      case PergolaRoofOverhang._16inch:
+        offsetX = 16 * 0.0254;
+        offsetZ = 16 * 0.0254;
+        overhangValue = this.interpolateValue(16, 12, 24);
+        break;
+
+      case PergolaRoofOverhang._20inch:
+        offsetX = 20 * 0.0254;
+        offsetZ = 20 * 0.0254;
+        overhangValue = this.interpolateValue(20, 12, 24);
+        break;
+
+      case PergolaRoofOverhang._24inch:
+        offsetX = 24 * 0.0254;
+        offsetZ = 24 * 0.0254;
+        overhangValue = this.interpolateValue(24, 12, 24);
+        break;
+
+      default:
+        offsetX = 0;
+        offsetZ = 0;
+        break;
+    }
+
+    if (state.roofType === PergolaRoofType.Louvered) {
+      offsetX = this.settings.postSize === PergolaPostSize._4inch ? 0.02 : 0.06;
+      offsetZ = this.settings.postSize === PergolaPostSize._4inch ? 0.03 : 0.07;
+    }
+
+    const { FL_point, FR_point, RL_point, RR_point } = this.getCornerPoints();
+
+    const FL_post_point = FL_point.clone().add(
+      new THREE.Vector3(offsetX, 0, -offsetZ)
+    );
+    const FR_post_point = FR_point.clone().add(
+      new THREE.Vector3(-offsetX, 0, -offsetZ)
+    );
+    const RL_post_point = RL_point.clone().add(
+      new THREE.Vector3(offsetX, 0, offsetZ)
+    );
+    const RR_post_point = RR_point.clone().add(
+      new THREE.Vector3(-offsetX, 0, offsetZ)
+    );
+
+    const widthInterval = state.steel ? 20.5 : 12.5;
+    let lengthInterval = 12.5;
+
+    // if (this.settings.postHasSteelInserts && this.settings.hasMiddleBeam) {
+    //   lengthInterval = this.settings.postLengthIntervalMiddleBeam;
+    // }
+
+    let overhangOffset = 0;
+
+    switch (this.settings.roofOverhang) {
+      case PergolaRoofOverhang._12inch:
+        overhangOffset = 12 * 0.0254 * 2;
+        break;
+      case PergolaRoofOverhang._16inch:
+        overhangOffset = 16 * 0.0254 * 2;
+        break;
+      case PergolaRoofOverhang._20inch:
+        overhangOffset = 20 * 0.0254 * 2;
+        break;
+      case PergolaRoofOverhang._24inch:
+        overhangOffset = 24 * 0.0254 * 2;
+        break;
+      default:
+        overhangOffset = 0;
+        break;
+    }
+
+    const front_points = generateMidpoints(
+      FL_post_point,
+      FR_post_point,
+      Math.floor(
+        (state.width - this.inchesToMeters(state.overhang)) / widthInterval
+      )
+    );
+    const rear_points = generateMidpoints(
+      RL_post_point,
+      RR_post_point,
+      Math.floor(
+        (state.width - this.inchesToMeters(state.overhang)) / widthInterval
+      )
+    );
+    const left_points = generateMidpoints(
+      FL_post_point,
+      RL_post_point,
+      Math.floor(
+        (state.length - this.inchesToMeters(state.overhang)) / lengthInterval
+      )
+    );
+    const right_points = generateMidpoints(
+      FR_post_point,
+      RR_post_point,
+      Math.floor(
+        (state.length - this.inchesToMeters(state.overhang)) / lengthInterval
+      )
+    );
+
+    // if (left_points.length % 2 === 1) {
+    //   this.settings.isMiddleBeamVisible = true;
+    // } else {
+    //   this.settings.isMiddleBeamVisible = false;
+    // }
+
+    return {
+      FL_post_point,
+      FR_post_point,
+      RL_post_point,
+      RR_post_point,
+      front_points,
+      rear_points,
+      left_points,
+      right_points,
+      offset: offsetX,
     };
   }
 
@@ -2995,51 +3340,11 @@ export class PergolaObject {
     }
   }
 
-  setRoofBeam() {
-    this.changeRoofVisibility(false, "beamX", null, true);
-    this.changeRoofVisibility(false, "beamY", null, true);
-    this.changeRoofVisibility(false, "beamXLed", null, true);
-    this.changeRoofVisibility(false, "beamYLed", null, true);
-
-    const {
-      point_post_length,
-      point_post_width,
-      point_louver_width,
-      point_louver_length,
-    } = this.getPostPoints();
-
-    if (state.roofType) {
-      if (state.directionRoof) {
-        this.setBeamsPosition(point_louver_length, this.roof.beamX);
-        this.setBeamsPosition(point_post_width, this.roof.beamY, true);
-
-        if (state.electro.has(pergolaConst.optionNameString.LEDStrip)) {
-          this.setBeamsPosition(point_louver_length, this.roof.beamXLed);
-          this.setBeamsPosition(point_post_width, this.roof.beamYLed, true);
-        }
-      } else {
-        this.setBeamsPosition(point_post_length, this.roof.beamX);
-        this.setBeamsPosition(point_louver_width, this.roof.beamY, true);
-
-        if (state.electro.has(pergolaConst.optionNameString.LEDStrip)) {
-          this.setBeamsPosition(point_post_length, this.roof.beamXLed);
-          this.setBeamsPosition(point_louver_width, this.roof.beamYLed, true);
-        }
-      }
-    } else {
-      this.setBeamsPosition(point_post_length, this.roof.beamX);
-      this.setBeamsPosition(point_post_width, this.roof.beamY, true);
-
-      if (state.electro.has(pergolaConst.optionNameString.LEDStrip)) {
-        this.setBeamsPosition(point_post_length, this.roof.beamXLed);
-        this.setBeamsPosition(point_post_width, this.roof.beamYLed, true);
-      }
-    }
-  }
-
-  addOffset(target, direction, offset) {
+  addOffsetWithCorner(target, direction, offset) {
     if (Array.isArray(target)) {
       return target.map((el) => {
+        console.log(el, el[direction]);
+
         return {
           ...el,
           [direction]: el[direction] + offset,
@@ -3052,6 +3357,38 @@ export class PergolaObject {
       };
     }
   }
+
+  addOffset(target, direction, offset) {
+    if (Array.isArray(target)) {
+      return target.map((el) => {
+        const vec = new THREE.Vector3(el.x, el.y, el.z);
+        vec[direction] += offset;
+        return vec;
+      });
+    } else {
+      const vec = new THREE.Vector3(target.x, target.y, target.z);
+      vec[direction] += offset;
+      return vec;
+    }
+  }
+
+  // addOffset(target, direction, offset) {
+  //   if (Array.isArray(target)) {
+  //     return target.map((el) => {
+  //       console.log(el, el[direction]);
+
+  //       return {
+  //         ...el,
+  //         [direction]: el[direction] + offset,
+  //       };
+  //     });
+  //   } else {
+  //     return {
+  //       ...target,
+  //       [direction]: target[direction] + offset,
+  //     };
+  //   }
+  // }
 
   generateCenterPoints(points) {
     const centerPoints = [];
@@ -4082,8 +4419,6 @@ export class PergolaObject {
   }
 
   updateSubsystems() {
-    const { span_width, span_depth } = this.getSpanPoints();
-
     const spans = this.span.objects;
 
     for (let i = 0; i < spans.length; i++) {
@@ -4096,17 +4431,11 @@ export class PergolaObject {
               case pergolaConst.systemType.privacyWall:
                 const frame = system.object;
 
-                // system.object.position.x = span.posX;
-                // system.object.position.z = span.posZ;
-
                 const isDirectionX = !system.direction;
 
-                // const mesh = post.children[0];
                 let post = isDirectionX
-                  ? scene.getObjectByName("privacy_wall_post_3x3")
-                  : scene.getObjectByName("privacy_wall_post_3x3_side");
-
-                post.material.color.set(state.colorBody);
+                  ? scene.getObjectByName("post_3x3002")
+                  : scene.getObjectByName("post_3x3002");
 
                 let blade30 = isDirectionX
                   ? scene.getObjectByName("privacy_wall_2x2")
@@ -4126,6 +4455,7 @@ export class PergolaObject {
                 const mirroredPoints = generateMidpoints(
                   this.addOffset(post.position, direction, half),
                   this.addOffset(post.position, direction, -half),
+                  true,
                   countPosts
                 );
 
@@ -4169,7 +4499,7 @@ export class PergolaObject {
                   }
                 }
 
-                const gapShutter = !state.slatsSize ? 0 : 0.06;
+                const gapShutter = !state.slatsSize ? 0 : 0.03;
                 const heightShutter = !state.slatsSize ? 0.15 : 0.06;
                 const fullShutterHeight = heightShutter + gapShutter;
                 const totalHeight = this.getMeters(state.height);
@@ -4202,37 +4532,11 @@ export class PergolaObject {
                 break;
 
               case pergolaConst.systemType.autoShade:
-                const minSize = 0.930618;
-                const maxSize = 7.01014;
-
-                if (!system.direction) {
-                  const morphValue = this.interpolateValue(
-                    span_width,
-                    minSize,
-                    maxSize
-                  );
-
-                  ChangeGlobalMorph("width_shades", morphValue);
-                } else {
-                  const morphValue = this.interpolateValue(
-                    span_depth,
-                    minSize,
-                    maxSize
-                  );
-
-                  ChangeGlobalMorph("length_shades_side", morphValue);
-                }
-
                 const material = system.object.children[1].material;
                 const zipPost = !system.direction
-                  ? system.object.getObjectByName("zip_post")
-                  : system.object.getObjectByName("zip_post_side");
+                  ? system.object.getObjectByName("post_3x3003")
+                  : system.object.getObjectByName("post_3x3004");
                 this.changeObjectVisibility(false, zipPost);
-
-                if (system.spanWidth >= 5.9) {
-                  //m
-                  this.changeObjectVisibility(true, zipPost);
-                }
 
                 material.color.set(state.colorZip);
                 system.object.children[0].material.color.set(state.colorBody);
@@ -4249,48 +4553,26 @@ export class PergolaObject {
             }
           }
         });
-      } else {
-        // span.systems.forEach((system) => {
-        //   system.active = false;
-        //   this.changeObjectVisibility(false, system.object);
-        //   this.changeObjectVisibility(false, system.windowObject);
-        // });
       }
     }
   }
 
   setOptions() {
-    this.changeRoofVisibilityRest(false, "heatersFront", null, true);
-    this.changeRoofVisibilityRest(false, "heatersBack", null, true);
-    this.changeRoofVisibilityRest(false, "fans", null, true);
-    this.changeRoofVisibilityRest(false, "fansBeamX", null, true);
-    this.changeRoofVisibilityRest(false, "fansBeamY", null, true);
-    this.changeRoofVisibility(false, "pointLED", null, true);
-    this.changeRoofVisibility(false, "rampLEDX", null, true);
-    this.changeRoofVisibility(false, "rampLEDY", null, true);
-    pergola.roof.headerLed[0].object.visible = false;
+    this.clearOptionElements();
 
     pointsBeamX = [];
     pointsBeamZ = [];
 
     if (
-      state.electro.has(pergolaConst.optionNameString.fans) ||
-      (state.electro.has(pergolaConst.optionNameString.LEDRecessed) &&
-        state.width > 4)
+      state.electro.has(pergolaConst.optionNameString.fans)
+      // state.width > 4 &&
+      // state.length > 4
     ) {
       this.setFans();
     }
 
-    if (state.electro.has(pergolaConst.optionNameString.LEDStrip)) {
-      pergola.roof.headerLed[0].object.visible = true;
-    }
-
-    if (state.electro.has(pergolaConst.optionNameString.LEDRecessed)) {
-      this.setPointLight();
-    }
-
     if (state.electro.has(pergolaConst.optionNameString.LEDRampLight)) {
-      this.setLEDramp();
+      this.setFans();
     }
   }
 
@@ -4809,13 +5091,17 @@ export class PergolaObject {
     const countPointLight = 1;
     let cornerAndBeamPointZ = null;
     let cornerAndBeamPointX = null;
+    let cornerAndSkyLightpointX = null;
 
-    if (state.directionRoof) {
-      cornerAndBeamPointZ = [FL_point, ...point_louver_length, RR_point];
-      cornerAndBeamPointX = [RL_point, ...point_post_width, FR_point];
-    } else {
-      cornerAndBeamPointZ = [FL_point, ...point_post_length, RR_point];
-      cornerAndBeamPointX = [RL_point, ...point_louver_width, FR_point];
+    cornerAndBeamPointZ = [FL_point, ...point_post_length, RR_point];
+    cornerAndBeamPointX = [RL_point, ...point_post_width, FR_point];
+
+    if (pergola.pointXforSkylight.length) {
+      cornerAndSkyLightpointX = [
+        RL_point,
+        ...pergola.pointXforSkylight,
+        FR_point,
+      ];
     }
 
     if (!state.roofType) {
@@ -4824,7 +5110,12 @@ export class PergolaObject {
     }
 
     let allPointsForLouversZ = [];
-    let allPointsForLouversX = [];
+    let allPointsForFansX = [];
+
+    const qntyFans = Math.ceil(state.width / 20);
+
+    let allPointsForLouversX = generateMidpoints(FL_point, FR_point, qntyFans);
+    let allPointsForSkylightX = [];
 
     for (let i = 0; i < cornerAndBeamPointZ.length - 1; i++) {
       const spanPoints = generateMidpoints(
@@ -4843,42 +5134,302 @@ export class PergolaObject {
         countPointLight
       );
 
-      allPointsForLouversX.push(...spanPoints);
+      allPointsForFansX.push(...spanPoints);
     }
 
-    const fansBeam = state.directionRoof ? this.fansBeamY : this.fansBeamX;
+    if (cornerAndSkyLightpointX) {
+      for (let i = 0; i < cornerAndSkyLightpointX.length - 1; i++) {
+        const spanPoints = generateMidpoints(
+          cornerAndSkyLightpointX[i],
+          cornerAndSkyLightpointX[i + 1],
+          countPointLight
+        );
+
+        allPointsForSkylightX.push(...spanPoints);
+      }
+    }
+
+    const fansBeam = this.fansBeam;
+    const offsetLed =
+      state.skyLight || state.directionRoof
+        ? 0.4
+        : this.getMeters(state.width) * 0.1;
 
     //#region BEAM X
-    for (let i = 0; i < allPointsForLouversZ.length; i++) {
-      const pointZ = allPointsForLouversZ[i].z;
+    if (!state.directionRoof) {
+      for (let i = 0; i < allPointsForLouversZ.length; i++) {
+        const pointZ = allPointsForLouversZ[i].z;
 
-      for (let a = 0; a < allPointsForLouversX.length; a++) {
-        const pointX = allPointsForLouversX[a].x;
-        const elementFan = this.getAvaliableObjectFromOneArray(this.fans);
-        const elementBeam = this.getAvaliableObjectFromOneArray(fansBeam);
+        if (!state.roofType || !state.skyLight || state.roofType === 2) {
+          for (let a = 0; a < allPointsForLouversX.length; a++) {
+            let pointX = allPointsForLouversX[a].x;
 
-        //FANS
-        if (state.electro.has(pergolaConst.optionNameString.fans)) {
-          elementFan.object.position.x = pointX;
-          elementFan.object.position.z = pointZ;
+            const elementFan = this.getAvaliableObjectFromOneArray(this.fans);
+            const elementBeam = this.getAvaliableObjectFromOneArray(fansBeam);
+            const elementPoinLight = this.getAvaliableObjectFromOneArray(
+              this.leds
+            );
+            const elementPoinLightDif = this.getAvaliableObjectFromOneArray(
+              this.ledsDifSide
+            );
 
-          elementFan.object.visible = true;
-          elementFan.object.children.forEach((child) => (child.visible = true));
-          elementFan.active = true;
+            if (
+              state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
+              state.width > 8
+            ) {
+              // #region first led
+              elementPoinLight.object.position.x = pointX + offsetLed;
+              elementPoinLight.object.position.z = pointZ;
+
+              elementPoinLight.object.visible = true;
+              elementPoinLight.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementPoinLight.active = true;
+
+              //#endregion
+
+              // #region second led
+              elementPoinLightDif.object.position.x = pointX - offsetLed;
+              elementPoinLightDif.object.position.z = pointZ;
+
+              elementPoinLightDif.object.visible = true;
+              elementPoinLightDif.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementPoinLightDif.active = true;
+              // #endregion
+            }
+
+            //FANS
+            if (state.electro.has(pergolaConst.optionNameString.fans)) {
+              elementFan.object.position.x = pointX;
+              elementFan.object.position.z = pointZ;
+
+              elementFan.object.visible = true;
+              elementFan.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementFan.active = true;
+            }
+
+            //FANS BEAM
+            if (state.roofType !== 1) {
+              elementBeam.object.position.z = pointZ;
+              elementBeam.object.position.x =
+                state.roofType === 2 ? state.comboCenteXpoint : 0;
+
+              pointsBeamZ.push(pointZ);
+
+              elementBeam.object.visible = true;
+              elementBeam.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementBeam.active = true;
+            }
+          }
         }
 
-        //FANS BEAM
-        if (state.directionRoof) {
-          elementBeam.object.position.x = pointX;
-          pointsBeamX.push(pointX);
-        } else {
-          elementBeam.object.position.z = pointZ;
-          pointsBeamZ.push(pointZ);
+        if (
+          state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
+          pergola.pointXforSkylight.length &&
+          state.roofType === 1
+        ) {
+          for (let i = 0; i < pergola.pointXforSkylight.length; i++) {
+            const pointSkylight = pergola.pointXforSkylight[i].x;
+
+            const elementPoinLight = this.getAvaliableObjectFromOneArray(
+              this.leds
+            );
+            const elementPoinLightDif = this.getAvaliableObjectFromOneArray(
+              this.ledsDifSide
+            );
+
+            // #region first led
+            elementPoinLight.object.position.x = pointSkylight + offsetLed;
+            elementPoinLight.object.position.z = pointZ;
+
+            elementPoinLight.object.visible = true;
+            elementPoinLight.object.children.forEach(
+              (child) => (child.visible = true)
+            );
+            elementPoinLight.active = true;
+
+            //#endregion
+
+            // #region second led
+            elementPoinLightDif.object.position.x = pointSkylight - offsetLed;
+            elementPoinLightDif.object.position.z = pointZ;
+
+            elementPoinLightDif.object.visible = true;
+            elementPoinLightDif.object.children.forEach(
+              (child) => (child.visible = true)
+            );
+            elementPoinLightDif.active = true;
+            // #endregion
+          }
         }
 
-        elementBeam.object.visible = true;
-        elementBeam.object.children.forEach((child) => (child.visible = true));
-        elementBeam.active = true;
+        const pointForFan = allPointsForSkylightX.slice(1, -1);
+
+        //FANS SKYLIGHT
+        if (state.width > 8 && state.skyLight && state.roofType !== 2) {
+          for (let i = 0; i < pointForFan.length; i++) {
+            const pointX = pointForFan[i].x;
+            const elementFan = this.getAvaliableObjectFromOneArray(this.fans);
+
+            if (state.electro.has(pergolaConst.optionNameString.fans)) {
+              elementFan.object.position.x = pointX;
+              elementFan.object.position.z = pointZ;
+
+              elementFan.object.visible = true;
+              elementFan.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementFan.active = true;
+            }
+          }
+        }
+      }
+    } else {
+      const preparedPointX = allPointsForFansX
+        .filter((_, i) => i % 2 === 0)
+        .slice(0, qntyFans);
+
+      for (let i = 0; i < allPointsForLouversZ.length; i++) {
+        const pointZ = allPointsForLouversZ[i].z;
+
+        if (!state.roofType || !state.skyLight || state.roofType === 2) {
+          for (let a = 0; a < preparedPointX.length; a++) {
+            let pointX = preparedPointX[a].x;
+
+            const elementFan = this.getAvaliableObjectFromOneArray(this.fans);
+            const elementBeam = this.getAvaliableObjectFromOneArray(
+              this.fansBeamY
+            );
+            const elementPoinLight = this.getAvaliableObjectFromOneArray(
+              this.leds
+            );
+            const elementPoinLightDif = this.getAvaliableObjectFromOneArray(
+              this.ledsDifSide
+            );
+
+            if (
+              state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
+              state.width > 8
+            ) {
+              // #region first led
+              elementPoinLight.object.position.x = pointX;
+              elementPoinLight.object.position.z = pointZ + offsetLed;
+
+              elementPoinLight.object.visible = true;
+              elementPoinLight.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementPoinLight.active = true;
+
+              //#endregion
+
+              // #region second led
+              elementPoinLightDif.object.position.x = pointX;
+              elementPoinLightDif.object.position.z = pointZ - offsetLed;
+
+              elementPoinLightDif.object.visible = true;
+              elementPoinLightDif.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementPoinLightDif.active = true;
+              // #endregion
+            }
+
+            //FANS
+            if (state.electro.has(pergolaConst.optionNameString.fans)) {
+              elementFan.object.position.x = pointX;
+              elementFan.object.position.z = pointZ;
+
+              elementFan.object.visible = true;
+              elementFan.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementFan.active = true;
+            }
+
+            //FANS BEAM
+            if (state.roofType !== 1) {
+              elementBeam.object.position.z = 0;
+              elementBeam.object.position.x = pointX;
+
+              pointsBeamZ.push(pointZ);
+
+              elementBeam.object.visible = true;
+              elementBeam.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementBeam.active = true;
+            }
+          }
+        }
+
+        if (
+          state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
+          pergola.pointXforSkylight.length &&
+          state.roofType === 1
+        ) {
+          for (let i = 0; i < pergola.pointXforSkylight.length; i++) {
+            const pointSkylight = pergola.pointXforSkylight[i].x;
+
+            const elementPoinLight = this.getAvaliableObjectFromOneArray(
+              this.leds
+            );
+            const elementPoinLightDif = this.getAvaliableObjectFromOneArray(
+              this.ledsDifSide
+            );
+
+            // #region first led
+            elementPoinLight.object.position.x = pointSkylight + offsetLed;
+            elementPoinLight.object.position.z = pointZ;
+
+            elementPoinLight.object.visible = true;
+            elementPoinLight.object.children.forEach(
+              (child) => (child.visible = true)
+            );
+            elementPoinLight.active = true;
+
+            //#endregion
+
+            // #region second led
+            elementPoinLightDif.object.position.x = pointSkylight - offsetLed;
+            elementPoinLightDif.object.position.z = pointZ;
+
+            elementPoinLightDif.object.visible = true;
+            elementPoinLightDif.object.children.forEach(
+              (child) => (child.visible = true)
+            );
+            elementPoinLightDif.active = true;
+            // #endregion
+          }
+        }
+
+        const pointForFan = allPointsForSkylightX.slice(1, -1);
+
+        //FANS SKYLIGHT
+        if (state.width > 8 && state.skyLight && state.roofType !== 2) {
+          for (let i = 0; i < pointForFan.length; i++) {
+            const pointX = pointForFan[i].x;
+            const elementFan = this.getAvaliableObjectFromOneArray(this.fans);
+
+            if (state.electro.has(pergolaConst.optionNameString.fans)) {
+              elementFan.object.position.x = pointX;
+              elementFan.object.position.z = pointZ;
+
+              elementFan.object.visible = true;
+              elementFan.object.children.forEach(
+                (child) => (child.visible = true)
+              );
+              elementFan.active = true;
+            }
+          }
+        }
       }
     }
     //#endregion
@@ -5051,7 +5602,7 @@ export class PergolaObject {
     }
   }
 
-  setBeamsPosition(points, array, rafter, rotate = false) {
+  setBeamsPosition(points, array, rafter, rotate = false, zero) {
     const beams = array;
 
     for (let i = 0; i < points.length; i++) {
@@ -5063,95 +5614,2120 @@ export class PergolaObject {
       }
 
       if (rafter) {
-        element.object.position.x = beamPoint.x;
+        element.object.position.x = zero ? 0 : beamPoint.x;
+        element.object.position.z = 0;
+        console.log("POS X", element);
       } else {
         element.object.position.z = beamPoint.z;
+        element.object.position.x = 0;
+
+        console.log("POS Z", element);
       }
 
       if (rotate) {
-        element.object.rotation.y = Math.PI;
+        element.object.rotation.y = Math.PI / 2;
+        console.log("ROTATE", element);
+      } else {
+        element.object.rotation.y = 0;
       }
 
-      element.active = true;
-      element.object.visible = true;
       this.changeObjectVisibility(true, element.object);
-      console.log("Beam", element.object);
+      element.active = true;
     }
   }
 
+  setTailPosition(points, array) {
+    const beams = array;
+
+    for (let i = 0; i < points.length; i++) {
+      const beamPoint = points[i];
+      const element = beams[i];
+
+      if (element == null) {
+        return;
+      }
+
+      element.object.position.x = beamPoint.x;
+
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+    }
+  }
+
+  inchesToMeters(inches) {
+    const meters = inches * 0.0254;
+    return meters;
+  }
+
   setPosts() {
-    this.post.postFL.visible = false;
-    this.post.postFR.visible = false;
-    this.post.postBR.visible = false;
-    this.post.postBL.visible = false;
+    this.changePostVisibility(false, "post3x3", true);
+    this.changePostVisibility(false, "post3x3Left", true);
+    this.changePostVisibility(false, "post3x3Right", true);
+    this.changePostVisibility(false, "post3x3Back", true);
+    this.changePostVisibility(false, "post3x3Front", true);
 
-    this.changePostVisibility(false, "leftCenter", true);
-    this.changePostVisibility(false, "rightCenter", true);
-    this.changePostVisibility(false, "frontCenter", true);
-    this.changePostVisibility(false, "backCenter", true);
-    this.changePostVisibility(false, "centerCenter", true);
+    this.changePostVisibility(false, "postSquare", true);
+    this.changePostVisibility(false, "postSquareLeft", true);
+    this.changePostVisibility(false, "postSquareRight", true);
+    this.changePostVisibility(false, "postSquareBack", true);
+    this.changePostVisibility(false, "postSquareFront", true);
 
-    const { FL_point, FR_point, RL_point, RR_point } = this.getCornerPoints();
-    const { point_post_width, point_post_length } = this.getPostPoints();
+    this.changePostVisibility(false, "postRound", true);
+    this.changePostVisibility(false, "postRoundLeft", true);
+    this.changePostVisibility(false, "postRoundRight", true);
+    this.changePostVisibility(false, "postRoundBack", true);
+    this.changePostVisibility(false, "postRoundFront", true);
 
-    console.log(point_post_width, point_post_length);
+    this.changePostVisibility(false, "postHeadsOne", true);
+    this.changePostVisibility(false, "postHeadsOneLeft", true);
+    this.changePostVisibility(false, "postHeadsOneRight", true);
+    this.changePostVisibility(false, "postHeadsOneBack", true);
+    this.changePostVisibility(false, "postHeadsOneFront", true);
+
+    this.changePostVisibility(false, "postHeadsTwo", true);
+    this.changePostVisibility(false, "postHeadsTwoLeft", true);
+    this.changePostVisibility(false, "postHeadsTwoRight", true);
+    this.changePostVisibility(false, "postHeadsTwoBack", true);
+    this.changePostVisibility(false, "postHeadsTwoFront", true);
+
+    this.changePostVisibility(false, "rainFront", true);
+    this.changePostVisibility(false, "rainBack", true);
+
+    this.changePostVisibility(false, "rainCornerFront", true);
+    this.changePostVisibility(false, "rainCornerBack", true);
+    this.roof.rainShield[0].object.visible = false;
+
+    let morhpForColumn = 0;
+
+    switch (true) {
+      case state.postSize === 8:
+        morhpForColumn = 0.5;
+        break;
+
+      case state.postSize === 10:
+        morhpForColumn = 0.7;
+
+        break;
+
+      case state.postSize === 12:
+        morhpForColumn = 1;
+
+        break;
+    }
+
+    ChangeGlobalMorph("8-12", morhpForColumn);
+    ChangeGlobalMorph("4-7", morhpForColumn);
+
+    const typeLettice = state.roofType === 0;
+    const typeLouver = state.roofType === 2;
+    const typeSolid = state.roofType === 1;
+
+    const changedOverhang = this.inchesToMeters(-state.overhang);
+
+    const offsetForOverhangPosts = changedOverhang;
+
+    const typeSolidOverhang = state.overhang === 12 ? 18 : state.overhang;
+
+    const offsetForOverhangPostsX = typeSolid
+      ? this.inchesToMeters(-typeSolidOverhang)
+      : offsetForOverhangPosts;
+
+    const { FL_point, FR_point, RL_point, RR_point } = this.getCornerPoints(
+      offsetForOverhangPostsX,
+      offsetForOverhangPosts
+    );
+    const { point_post_width, point_post_length } = this.getPostPoints(
+      offsetForOverhangPostsX,
+      offsetForOverhangPosts
+    );
 
     const pointForCorner = [
-      !pergola.settings.leftWall ? FL_point : {},
-      !pergola.settings.rightWall ? FR_point : {},
-      !pergola.settings.backWall && !pergola.settings.leftWall ? RL_point : {},
-      !pergola.settings.backWall && !pergola.settings.rightWall ? RR_point : {},
+      !state.leftWall ? FL_point : {},
+      !state.rightWall ? FR_point : {},
+      !state.backWall && !state.leftWall ? RL_point : {},
+      !state.backWall && !state.rightWall ? RR_point : {},
     ];
 
-    if (!state.leftWall) {
-      this.post.postFL.visible = true;
-    }
+    if (true) {
+      // if need add condition
+      if (state.gutter && state.roofType === 1) {
+        this.setPostsPosition(
+          "rainCornerFront",
+          [state.rightWall ? {} : FR_point, state.leftWall ? {} : FL_point],
+          true
+        );
+        this.setPostsPosition("rainFront", point_post_width, true);
 
-    if (!state.rightWall) {
-      this.post.postFR.visible = true;
-    }
-
-    if (!state.backWall && !state.leftWall) {
-      this.post.postBL.visible = true;
-    }
-
-    if (!state.backWall && !state.rightWall) {
-      this.post.postBR.visible = true;
-    }
-
-    if (!state.leftWall) {
-      this.setPostsPosition("leftCenter", point_post_length, true);
-    }
-
-    if (!state.rightWall) {
-      this.setPostsPosition("rightCenter", point_post_length, true);
-    }
-
-    if (!state.backWall) {
-      this.setPostsPosition("backCenter", point_post_width, true);
-    }
-
-    this.setPostsPosition("frontCenter", point_post_width, true);
-
-    // center column
-    if (point_post_width.length && point_post_length.length) {
-      const posts = this.post.centerCenter;
-
-      for (let i = 0; i < point_post_width.length; i++) {
-        const point = point_post_width[i];
-
-        for (let j = 0; j < point_post_length.length; j++) {
-          const pointZ = point_post_length[j].z;
-
-          const element = this.getAvaliableObjectFromOneArray(posts);
-
-          element.object.position.x = point.x;
-          element.object.position.z = pointZ;
-
-          this.changeObjectVisibility(true, element.object);
-          element.active = true;
+        if (!state.backWall) {
+          this.setPostsPosition("rainCornerBack", [RL_point, RR_point], true);
+          this.setPostsPosition("rainBack", point_post_width, true);
         }
       }
+
+      if (state.rain) {
+        this.roof.rainShield[0].object.visible = true;
+        this.roof.rainShield[0].object.children.forEach(
+          (el) => (el.visible = true)
+        );
+      }
+
+      switch (true) {
+        case state.postType === 0 && !state.wrapKit && state.roofType !== 2:
+          this.setPostsPosition("post3x3", pointForCorner);
+
+          if (!state.leftWall) {
+            this.setPostsPosition("post3x3Left", point_post_length, true);
+          }
+
+          if (!state.rightWall) {
+            this.setPostsPosition("post3x3Right", point_post_length, true);
+          }
+
+          if (!state.backWall) {
+            this.setPostsPosition("post3x3Back", point_post_width, true);
+          }
+
+          this.setPostsPosition("post3x3Front", point_post_width, true);
+
+          console.log("POST 0");
+          break;
+
+        case state.postType === 0 && state.roofType === 2:
+        case state.postType === 0 && state.wrapKit:
+          const typeOfBeam = !state.beam ? "postHeadsOne" : "postHeadsTwo";
+
+          this.setPostsPosition(typeOfBeam, pointForCorner);
+
+          if (!state.leftWall) {
+            this.setPostsPosition(`${typeOfBeam}Left`, point_post_length, true);
+          }
+
+          if (!state.rightWall) {
+            this.setPostsPosition(
+              `${typeOfBeam}Right`,
+              point_post_length,
+              true
+            );
+          }
+
+          if (!state.backWall) {
+            this.setPostsPosition(`${typeOfBeam}Back`, point_post_width, true);
+          }
+
+          this.setPostsPosition(`${typeOfBeam}Front`, point_post_width, true);
+
+          console.log("POST 1");
+          break;
+
+        case state.postType === 1:
+          this.setPostsPosition("postSquare", pointForCorner);
+
+          if (!state.leftWall) {
+            this.setPostsPosition("postSquareLeft", point_post_length, true);
+          }
+
+          if (!state.rightWall) {
+            this.setPostsPosition("postSquareRight", point_post_length, true);
+          }
+
+          if (!state.backWall) {
+            this.setPostsPosition("postSquareBack", point_post_width, true);
+          }
+
+          this.setPostsPosition("postSquareFront", point_post_width, true);
+          break;
+
+        case state.postType === 2:
+          this.setPostsPosition("postRound", pointForCorner);
+
+          if (!state.leftWall) {
+            this.setPostsPosition("postRoundLeft", point_post_length, true);
+          }
+
+          if (!state.rightWall) {
+            this.setPostsPosition("postRoundRight", point_post_length, true);
+          }
+
+          if (!state.backWall) {
+            this.setPostsPosition("postRoundBack", point_post_width, true);
+          }
+
+          this.setPostsPosition("postRoundFront", point_post_width, true);
+          break;
+      }
+
+      //center column
+      if (point_post_width.length && point_post_length.length) {
+        let posts = null;
+
+        switch (true) {
+          case state.postType === 0 && !state.wrapKit && state.roofType !== 2:
+            posts = this.post.post3x3;
+
+            break;
+
+          case state.postType === 0 && state.roofType === 2:
+          case state.postType === 0 && state.wrapKit:
+            const typeOfBeam = pergola.settings.beam
+              ? "postHeadsOne"
+              : "postHeadsTwo";
+
+            posts = this.post[typeOfBeam];
+
+            break;
+
+          case state.postType === 1:
+            posts = this.post.postSquare;
+
+            break;
+
+          case state.postType === 2:
+            posts = this.post.postRound;
+
+            break;
+        }
+
+        for (let i = 0; i < point_post_width.length; i++) {
+          const point = point_post_width[i];
+
+          for (let j = 0; j < point_post_length.length; j++) {
+            const pointZ = point_post_length[j].z;
+
+            const element = this.getAvaliableObjectFromOneArray(posts);
+
+            element.object.position.x = point.x;
+            element.object.position.z = pointZ;
+
+            this.changeObjectVisibility(true, element.object);
+            element.active = true;
+          }
+        }
+      }
+    }
+  }
+
+  setWrapkitThicknessSolid() {
+    switch (this.settings.roofSolidWrapkit) {
+      case PergolaRoofWrapkit._2x6:
+        // ChangeGlobalMorph("2x6-3x8", 0); // wrapkit
+        break;
+      case PergolaRoofWrapkit._3x8:
+        // ChangeGlobalMorph("2x6-3x8", 1); // wrapkit
+        break;
+      default:
+        // ChangeGlobalMorph("2x6-3x8", 1); // wrapkit
+        break;
+    }
+  }
+
+  setPanelThicknessSolid() {
+    switch (this.settings.roofSolidThickness) {
+      case PergolaRoofThickness._3inch:
+        ChangeGlobalMorph("3-6", 0); // roof thickness
+        break;
+      case PergolaRoofThickness._4inch:
+        ChangeGlobalMorph("3-6", 1 / 3); // roof thickness
+        break;
+      case PergolaRoofThickness._6inch:
+        ChangeGlobalMorph("3-6", 0.94); // roof thickness
+        break;
+      default:
+        break;
+    }
+  }
+
+  getAvaliableSolidObjectFromArray(
+    objects,
+    type,
+    planks,
+    plank8inch,
+    direction = null
+  ) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+
+      if (element.active === true) {
+        continue;
+      }
+
+      if (
+        element.type === type &&
+        element.planks === planks &&
+        element.plank8inch === plank8inch &&
+        element.direction === direction
+      ) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  setSolidPosition(startPoint, roofElements) {
+    const objects = this.roof.solid.objects;
+
+    let currentEdgePoint = startPoint;
+
+    for (let i = 0; i < roofElements.length; i++) {
+      const roofElement = roofElements[i];
+
+      // console.log
+      const element = this.getAvaliableSolidObjectFromArray(
+        objects,
+        roofElement.type,
+        roofElement.planks,
+        roofElement.plank8inch,
+        roofElement.direction
+      );
+
+      if (element == null) {
+        continue;
+      }
+
+      element.object.position.x = currentEdgePoint + roofElement.width / 2;
+
+      if (element.name !== "skylight") {
+        element.object.position.y = 2.4766; // to prevent Z-fighting
+      } else {
+        element.object.scale.z = 0.999; // to prevent Z-fighting
+
+        pergola.pointXforSkylight.push(element.object.position);
+
+        // console.log("skylight", element.object.position.x);
+      }
+
+      currentEdgePoint = currentEdgePoint + roofElement.width;
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+    }
+  }
+
+  makeSolidAndComboRoof() {
+    const wrapKitObject = scene.getObjectByName("wrap_kit");
+    // const wrapKitObjectRain = scene.getObjectByName("solid_non_roof_rain_mesh001");
+    const backBeamObject = scene.getObjectByName("back_beam");
+    const solidRainObject = scene.getObjectByName(
+      "solid_non_roof_rain_mesh001"
+    );
+    const fanBeam = scene.getObjectByName("beam");
+    const solidRoofAnother = scene.getObjectByName("solid_roof_frame");
+    const solidnonRainObject = scene.getObjectByName(
+      "solid_non_roof_rain_mesh"
+    );
+    // const solidnonFrame = this.roof.solidnon.frames[0].object;
+    // const solidFrame = this.roof.solid.frames[0].object;
+
+    // solidFrame.scale.y = 1.001; // to prevent z-fighting
+    // backBeamObject.position.x = 0;
+
+    // if (state.roofType === 1) {
+    //   backBeamObject.visible = false;
+    // } else if (state.wallOption === 2) {
+    //   backBeamObject.visible = true;
+    // }
+
+    wrapKitObject.scale.x = 1.002;
+    // solidFrame.scale.x = 1.002;
+
+    pergola.pointXforSkylight = [];
+    // this.changeObjectVisibility(false, solidnonFrame);
+    // this.changeObjectVisibility(false, solidFrame);
+    this.changeObjectVisibility(false, solidRainObject);
+    this.changeObjectVisibility(false, solidRainObject);
+    this.changeObjectVisibility(false, solidnonRainObject);
+    this.changeObjectVisibility(false, wrapKitObject);
+    this.changeObjectVisibility(false, solidRoofAnother);
+    // this.changeObjectVisibility(false, backBeamObject);
+
+    this.changeHeadVisibility(false, null, true);
+    this.changeRafterVisibility(false, null, true);
+    this.changeTailVisibility(false, true);
+    // this.changeLatticeVisibility(false, true);
+    // this.changeLouveredVisibility(false, true);
+    this.changeSolidSolidnonVisibility(false, "solidnon", true);
+    this.changeSolidSolidnonVisibility(false, "solid", true);
+
+    const { FL_point, FC_point, RL_point, FR_point } = this.getCornerPoints();
+
+    const frameWidth_m = this.getMeters(state.width);
+
+    let addPlankLeft;
+    let addPlankRight;
+
+    const typeSolid = state.roofType === 1;
+    const typeCombo = state.roofType === 2;
+
+    const {
+      FL_post_point,
+      FR_post_point,
+      RL_post_point,
+      RR_post_point,
+      front_points,
+      rear_points,
+      left_points,
+      right_points,
+      offset,
+    } = this.getPostPointsCombo();
+
+    //* SOLID
+    if (typeSolid) {
+      // this.setWrapkitThicknessSolid();
+      this.setPanelThicknessSolid();
+      if (state.wrapKit) {
+        this.changeObjectVisibility(true, wrapKitObject, 0);
+      }
+      // this.changeObjectVisibility(true, solidFrame, 0);
+      this.changeObjectVisibility(true, solidRainObject, 0);
+
+      wrapKitObject.position.x = 0;
+      solidRainObject.position.x = 0;
+
+      addPlankLeft = {
+        type: PergolaRoofObjectType.roof,
+        planks: 1,
+        plank8inch: null,
+        direction: PergolaSide.Left,
+        width: 0.0254, // 1 inch
+      };
+
+      addPlankRight = {
+        type: PergolaRoofObjectType.roof,
+        planks: 1,
+        plank8inch: null,
+        direction: PergolaSide.Right,
+        width: 0.0254, // 1 inch
+      };
+
+      if (!state.skyLight) {
+        const qtyPanel6x = Math.floor(
+          frameWidth_m / state.solidRoofElementWidth_m._6_plank
+        );
+
+        const rest = frameWidth_m % state.solidRoofElementWidth_m._6_plank;
+        const qtyPanel1x = Math.floor(
+          rest / state.solidRoofElementWidth_m._1_plank
+        );
+
+        let delta =
+          (frameWidth_m -
+            qtyPanel6x * state.solidRoofElementWidth_m._6_plank -
+            qtyPanel1x * state.solidRoofElementWidth_m._1_plank) /
+          2;
+
+        let roofElements = [];
+
+        for (let i = 0; i < qtyPanel6x; i++) {
+          roofElements.push({
+            type: PergolaRoofObjectType.roof,
+            planks: 6,
+            plank8inch: state.roofSolidPlank8inch,
+            width: state.solidRoofElementWidth_m._6_plank,
+          });
+        }
+
+        if (qtyPanel1x > 0) {
+          roofElements.push({
+            type: PergolaRoofObjectType.roof,
+            planks: qtyPanel1x,
+            plank8inch: state.roofSolidPlank8inch,
+            width:
+              state.solidRoofElementWidth_m[PergolaRoofSolidPanels[qtyPanel1x]],
+          });
+        }
+
+        let totWidth = 0;
+
+        for (let i = 0; i < roofElements.length; i++) {
+          const elementWidth = roofElements[i].width;
+          totWidth += elementWidth;
+        }
+
+        delta = frameWidth_m - totWidth;
+
+        if (delta > 0.0127) {
+          roofElements.push(addPlankRight);
+          const targetValue = this.interpolateValue(
+            delta,
+            1 * 0.0254,
+            8 * 0.0254
+          );
+          ChangeGlobalMorph("1-8", targetValue);
+        }
+
+        console.log(roofElements, "Roof Elemnts");
+
+        this.setSolidPosition(FL_point.x, roofElements);
+      } else {
+        // with Skylights
+        let roofElements = [];
+
+        if (state.width <= 16) {
+          const qtyWholePanel6x = Math.floor(
+            (frameWidth_m - state.solidRoofSkylightWidth_m) /
+              state.solidRoofElementWidth_m._6_plank /
+              2
+          );
+          const restOnHalf =
+            ((frameWidth_m - state.solidRoofSkylightWidth_m) / 2) %
+            state.solidRoofElementWidth_m._6_plank;
+          const qtyPanel1x = Math.floor(
+            restOnHalf / state.solidRoofElementWidth_m._1_plank
+          );
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+        } else if (state.width > 16 && state.width < 30) {
+          const qtyWholePanel6x = Math.floor(
+            (frameWidth_m -
+              state.solidRoofSkylightWidth_m * 2 -
+              state.solidRoofElementWidth_m._6_plank * 3) /
+              state.solidRoofElementWidth_m._6_plank /
+              2
+          );
+          const restOnHalf =
+            ((frameWidth_m -
+              state.solidRoofSkylightWidth_m * 2 -
+              state.solidRoofElementWidth_m._6_plank * 3) /
+              2) %
+            state.solidRoofElementWidth_m._6_plank;
+          const qtyPanel1x = Math.floor(
+            restOnHalf / state.solidRoofElementWidth_m._1_plank
+          );
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < 3; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+        } else if (state.width >= 30) {
+          const qtyWholePanel6x = Math.floor(
+            (frameWidth_m -
+              state.solidRoofSkylightWidth_m * 3 -
+              state.solidRoofElementWidth_m._6_plank * 6) /
+              state.solidRoofElementWidth_m._6_plank /
+              2
+          );
+          const restOnHalf =
+            ((frameWidth_m -
+              state.solidRoofSkylightWidth_m * 3 -
+              state.solidRoofElementWidth_m._6_plank * 6) /
+              2) %
+            state.solidRoofElementWidth_m._6_plank;
+          const qtyPanel1x = Math.floor(
+            restOnHalf / state.solidRoofElementWidth_m._1_plank
+          );
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < 3; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < 3; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: state.roofSolidPlank8inch,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: state.roofSolidPlank8inch,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+        }
+
+        let totWidth = 0;
+        let delta = 0;
+
+        for (let i = 0; i < roofElements.length; i++) {
+          const elementWidth = roofElements[i].width;
+          totWidth += elementWidth;
+        }
+
+        delta = (frameWidth_m - totWidth) / 2;
+
+        let startPos = FL_point.x;
+
+        if (delta > 0.0127) {
+          roofElements.unshift(addPlankLeft);
+          roofElements.push(addPlankRight);
+          const targetValue = this.interpolateValue(
+            delta,
+            1 * 0.0254,
+            8 * 0.0254
+          );
+          ChangeGlobalMorph("1-8", targetValue);
+
+          startPos += delta - 0.0254;
+        }
+
+        this.setSolidPosition(startPos, roofElements);
+      }
+
+      // if (true) {
+      //   this.setGutters();
+      // }
+
+      // this.setTails("solid", FL_point, FR_point, this.settings.roofSolidTails);
+    }
+
+    //* COMBO
+    if (typeCombo) {
+      const comboSolidPercent =
+        this.settings.roofComboSolidPercentage ===
+        PergolaRoofPercentage._70percent
+          ? 0.7
+          : 0.5;
+      const { COMBO_LATTICE_CENTER_point, COMBO_SOLID_CENTER_point } =
+        this.getComboCenterPoints();
+
+      // Lattice part (50% or 30%)
+
+      const rightRafterPoint = FC_point.clone().add(
+        new THREE.Vector3(-0.05, 0, 0)
+      );
+
+      this.makeRafters(
+        FL_post_point,
+        rightRafterPoint,
+        1 - comboSolidPercent,
+        true,
+        PergolaRoofRafters.single
+      );
+
+      let latticeSpacing;
+
+      switch (state.spacing) {
+        case PergolaRoofSpacing._2inch:
+          latticeSpacing = 2 * 0.0254;
+          break;
+        case PergolaRoofSpacing._3inch:
+          latticeSpacing = 3 * 0.0254;
+          break;
+        case PergolaRoofSpacing._4inch:
+          latticeSpacing = 4 * 0.0254;
+          break;
+        default:
+          latticeSpacing = 2 * 0.0254;
+          break;
+      }
+
+      let lattice_points = [];
+      const latticeWith2x2 = 0.0508;
+      const latticeWith3x3 = 0.0762;
+
+      const latticeWidth =
+        state.thickness === 2 ? latticeWith2x2 : latticeWith3x3;
+
+      if (
+        this.settings.roofComboLatticeDirection ===
+        PergolaRoofDirection.Straight
+      ) {
+        const rearPoint = RL_point.clone().add(new THREE.Vector3(0, 0, 0.03));
+        const frontPoint = FL_point.clone().add(new THREE.Vector3(0, 0, -0.03));
+        const latticeQty =
+          Math.floor(
+            (state.length * 0.3048 - latticeWidth) /
+              (latticeWidth + latticeSpacing)
+          ) - 1;
+        lattice_points = generateMidpoints(
+          frontPoint,
+          rearPoint,
+          latticeQty,
+          true
+        );
+      } else {
+        const latticeQty =
+          Math.floor(
+            (state.width * 0.3048 * (1 - comboSolidPercent) - latticeWidth) /
+              (latticeWidth + latticeSpacing)
+          ) - 1;
+        const supportQty =
+          Math.floor(
+            (state.length * 0.3048 - offset * 2) /
+              this.settings.latticeSupportlengthInterval_m
+          ) - 1;
+        const leftPoint = FL_point.clone().add(
+          new THREE.Vector3(latticeWidth, 0, 0)
+        );
+        const rightPoint = FC_point.clone().add(
+          new THREE.Vector3(-latticeWidth, 0, 0)
+        );
+        lattice_points = generateMidpoints(
+          leftPoint,
+          rightPoint,
+          latticeQty,
+          true
+        );
+        const support_points = generateMidpoints(
+          FL_post_point,
+          RL_post_point,
+          supportQty,
+          true
+        );
+        console.log(support_points, "SUPPORT POINTS");
+        // this.setLatticePosition(
+        //   support_points,
+        //   true,
+        //   COMBO_LATTICE_CENTER_point.x - 0.01
+        // );
+      }
+
+      // console.log(
+      //   lattice_points,
+      //   "LETTICE POINT",
+      //   COMBO_LATTICE_CENTER_point.x
+      // );
+
+      const spacing = this.inchesToMeters(state.spacing);
+
+      const widthWithSpacing = pergola.settings.latticeSize
+        ? 0.17 + spacing
+        : 0.26 + spacing;
+
+      const countLatticeX = Math.floor(state.length / widthWithSpacing - 2);
+
+      const pointLatticeX = generateMidpoints(
+        RL_point,
+        FR_point,
+        countLatticeX,
+        true
+      );
+
+      this.setLatticePosition(
+        pointLatticeX,
+        false,
+        COMBO_LATTICE_CENTER_point.x - 0.05
+      );
+
+      wrapKitObject.position.x = -(COMBO_LATTICE_CENTER_point.x + 0.01);
+      solidRainObject.position.x = -(COMBO_LATTICE_CENTER_point.x + 0.01);
+      // backBeamObject.position.x = COMBO_LATTICE_CENTER_point.x;
+      state.comboCenteXpoint = COMBO_LATTICE_CENTER_point.x;
+
+      // if (backBeamObject) {
+      //   backBeamObject.position.y = 2.432;
+      //   backBeamObject.scale.y = 1.01;
+
+      //   if (this.settings.mountingWall_Back && !this.settings.roofMount) {
+      //     this.changeObjectVisibility(
+      //       this.settings.mountingWall_Back,
+      //       backBeamObject
+      //     );
+      //   }
+      // }
+
+      // ********************************************************************
+
+      // Solid part (50% or 70%)
+
+      const solidFrameWidth_m = frameWidth_m * comboSolidPercent;
+
+      this.setWrapkitThicknessCombo();
+      ChangeGlobalMorph("3-6", 0); // roof thickness
+
+      this.changeObjectVisibility(
+        true,
+        wrapKitObject,
+        COMBO_SOLID_CENTER_point.x
+      );
+      // this.changeObjectVisibility(true, solidFrame, COMBO_SOLID_CENTER_point.x);
+      this.changeObjectVisibility(
+        true,
+        solidRainObject,
+        COMBO_SOLID_CENTER_point.x
+      );
+
+      addPlankLeft = {
+        type: PergolaRoofObjectType.roof,
+        planks: 1,
+        plank8inch: null,
+        direction: PergolaSide.Left,
+        width: 0.0254, // 1 inch
+      };
+
+      addPlankRight = {
+        type: PergolaRoofObjectType.roof,
+        planks: 1,
+        plank8inch: null,
+        direction: PergolaSide.Right,
+        width: 0.0254, // 1 inch
+      };
+
+      // Without Skylights
+      if (!state.skyLight) {
+        const qtyPanel6x = Math.floor(
+          solidFrameWidth_m / state.solidRoofElementWidth_m._6_plank
+        );
+        const rest = solidFrameWidth_m % state.solidRoofElementWidth_m._6_plank;
+        const qtyPanel1x = Math.floor(
+          rest / state.solidRoofElementWidth_m._1_plank
+        );
+        let delta =
+          (solidFrameWidth_m -
+            qtyPanel6x * state.solidRoofElementWidth_m._6_plank -
+            qtyPanel1x * state.solidRoofElementWidth_m._1_plank) /
+          2;
+
+        let roofElements = [];
+
+        for (let i = 0; i < qtyPanel6x; i++) {
+          roofElements.push({
+            type: PergolaRoofObjectType.roof,
+            planks: 6,
+            plank8inch: false,
+            width: state.solidRoofElementWidth_m._6_plank,
+          });
+        }
+
+        if (qtyPanel1x > 0) {
+          roofElements.push({
+            type: PergolaRoofObjectType.roof,
+            planks: qtyPanel1x,
+            plank8inch: false,
+            width:
+              state.solidRoofElementWidth_m[PergolaRoofSolidPanels[qtyPanel1x]],
+          });
+        }
+
+        let totWidth = 0;
+
+        for (let i = 0; i < roofElements.length; i++) {
+          const elementWidth = roofElements[i].width;
+          totWidth += elementWidth;
+        }
+
+        delta = solidFrameWidth_m - totWidth;
+
+        if (delta > 0.0127) {
+          roofElements.push(addPlankRight);
+          const targetValue = this.interpolateValue(
+            delta,
+            1 * 0.0254,
+            8 * 0.0254
+          );
+          ChangeGlobalMorph("1-8", targetValue);
+        }
+
+        this.setSolidPosition(FC_point.x, roofElements);
+      } else {
+        // with Skylights
+        let roofElements = [];
+
+        // 1 skylight
+        if (this.dimensions.width * comboSolidPercent <= 20) {
+          const qtyWholePanel6x = Math.floor(
+            (solidFrameWidth_m - state.solidRoofSkylightWidth_m) /
+              state.solidRoofElementWidth_m._6_plank /
+              2
+          );
+          const restOnHalf =
+            ((solidFrameWidth_m - state.solidRoofSkylightWidth_m) / 2) %
+            state.solidRoofElementWidth_m._6_plank;
+          const qtyPanel1x = Math.floor(
+            restOnHalf / state.solidRoofElementWidth_m._1_plank
+          );
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: false,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: false,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: false,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: false,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+        }
+
+        // 2 skylights
+        else if (this.dimensions.width * comboSolidPercent > 20) {
+          const qtyWholePanel6x = Math.floor(
+            (solidFrameWidth_m -
+              state.solidRoofSkylightWidth_m * 2 -
+              state.solidRoofElementWidth_m._6_plank * 3) /
+              state.solidRoofElementWidth_m._6_plank /
+              2
+          );
+          const restOnHalf =
+            ((solidFrameWidth_m -
+              state.solidRoofSkylightWidth_m * 2 -
+              state.solidRoofElementWidth_m._6_plank * 3) /
+              2) %
+            state.solidRoofElementWidth_m._6_plank;
+          const qtyPanel1x = Math.floor(
+            restOnHalf / state.solidRoofElementWidth_m._1_plank
+          );
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: false,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: false,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < 3; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: false,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          roofElements.push({
+            type: PergolaRoofObjectType.skylight,
+            planks: null,
+            plank8inch: null,
+            width: state.solidRoofSkylightWidth_m,
+          });
+
+          for (let i = 0; i < qtyWholePanel6x; i++) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: 6,
+              plank8inch: false,
+              width: state.solidRoofElementWidth_m._6_plank,
+            });
+          }
+
+          if (qtyPanel1x > 0) {
+            roofElements.push({
+              type: PergolaRoofObjectType.roof,
+              planks: qtyPanel1x,
+              plank8inch: false,
+              width:
+                state.solidRoofElementWidth_m[
+                  PergolaRoofSolidPanels[qtyPanel1x]
+                ],
+            });
+          }
+        }
+
+        let totWidth = 0;
+        let delta = 0;
+
+        for (let i = 0; i < roofElements.length; i++) {
+          const elementWidth = roofElements[i].width;
+          totWidth += elementWidth;
+        }
+
+        delta = (solidFrameWidth_m - totWidth) / 2;
+
+        let startPos = FC_point.x;
+
+        if (delta > 0.0127) {
+          roofElements.unshift(addPlankLeft);
+          roofElements.push(addPlankRight);
+          const targetValue = this.interpolateValue(
+            delta,
+            1 * 0.0254,
+            8 * 0.0254
+          );
+          ChangeGlobalMorph("1-8", targetValue);
+
+          startPos += delta - 0.0254;
+        }
+
+        this.setSolidPosition(startPos, roofElements);
+      }
+
+      this.setTails("combo", FC_point, FR_point, false);
+    }
+  }
+
+  makeRafters(
+    leftPoint,
+    rightPoint,
+    widthPercentage = 1,
+    singleOnly = false,
+    type = null
+  ) {
+    const rafterInterval = 2;
+    this.setRafterPosition([leftPoint], PergolaPostPlace.Left, type);
+    this.setRafterPosition([rightPoint], PergolaPostPlace.Right, type);
+    const doubleOrSingle = singleOnly
+      ? PergolaRoofRafters.single
+      : this.settings.roofLatticeRafters;
+    const rafterQty =
+      doubleOrSingle === PergolaRoofRafters.double
+        ? Math.floor(
+            (state.width * widthPercentage * 0.3048) / rafterInterval
+          ) - 1
+        : Math.floor(
+            (state.width * widthPercentage * 0.3048) / rafterInterval
+          ) - 1;
+    const rafter_points = generateMidpoints(leftPoint, rightPoint, rafterQty);
+    this.setRafterPosition(rafter_points, null, type);
+  }
+
+  setRafterPosition(points, place = null, type = null) {
+    const rafters = this.roof.rafterBevelDouble;
+    const rafterType = type ?? this.settings.roofLatticeRafters;
+    const endcut = this.settings.endcutType;
+
+    for (let index = 0; index < points.length; index++) {
+      const point = points[index];
+      const element = this.getAvaliableHeadOrRafterFromArray(
+        rafters,
+        rafterType,
+        endcut
+      );
+      if (element == null) {
+        return;
+      }
+      element.object.position.x = point.x;
+      element.object.position.z = 0;
+
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+      element.place = place;
+    }
+  }
+
+  getAvaliableHeadOrRafterFromArray(objects, headtype, endcut) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+      if (element.active == true) {
+        continue;
+      }
+      if (element.type === headtype && element.endcut === endcut) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  setWrapkitThicknessCombo() {
+    switch (this.settings.roofComboSolidWrapkit) {
+      case PergolaRoofWrapkit._2x6:
+        // ChangeGlobalMorph("2x6-3x8", 0); // wrapkit
+        break;
+      case PergolaRoofWrapkit._3x8:
+        // ChangeGlobalMorph("2x6-3x8", 1); // wrapkit
+        break;
+      default:
+        break;
+    }
+  }
+
+  setLatticePosition(points, dir = false, centerPointX = 0) {
+    const latticeX = !state.thickness
+      ? this.roof.lattice2x2X
+      : this.roof.lattice3x3X;
+    const latticeY = !state.thickness
+      ? this.roof.lattice2x2Y
+      : this.roof.lattice3x3Y;
+
+    const lattices = !state.directionRoof ? latticeX : latticeY;
+
+    let latticeDirection = 0;
+
+    // if (state.roofType === PergolaRoofType.Combo) {
+    //   latticeDirection = this.settings.roofComboLatticeDirection;
+    // }
+
+    // if (isSupport) {
+    //   latticeDirection = PergolaRoofDirection.Straight;
+    // }
+
+    const latticeThickness = state.thickness;
+
+    for (let index = 0; index < points.length; index++) {
+      const point = points[index];
+
+      const element = this.getAvaliableLatticeFromArray(
+        lattices,
+        latticeDirection,
+        latticeThickness
+      );
+
+      if (element == null) {
+        return;
+      }
+      if (!dir) {
+        element.object.position.z = point.z;
+        element.object.position.x = centerPointX;
+      } else {
+        element.object.position.x = point.x;
+        element.object.position.z = 0;
+      }
+
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+    }
+  }
+
+  getAvaliableLatticeFromArray(objects, direction, thickness) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+      if (element.active == true) {
+        continue;
+      }
+      // if (element.direction === direction && element.thickness === thickness) {
+      return element;
+      // }
+    }
+
+    return null;
+  }
+
+  getComboCenterPoints() {
+    const { FL_point, FR_point, FC_point } = this.getCornerPoints();
+
+    const COMBO_LATTICE_CENTER_point = new THREE.Vector3(
+      (FC_point.x + FL_point.x) / 2,
+      0,
+      0
+    );
+    const COMBO_SOLID_CENTER_point = new THREE.Vector3(
+      (FR_point.x + FC_point.x) / 2,
+      0,
+      0
+    );
+
+    return { COMBO_LATTICE_CENTER_point, COMBO_SOLID_CENTER_point };
+  }
+
+  changeSolidSolidnonVisibility(status, roofType, reset = false) {
+    if (this.roof == null) {
+      return;
+    }
+    if (this.roof[roofType] == null) {
+      return;
+    }
+    if (this.roof[roofType].objects == null) {
+      return;
+    }
+
+    for (let index = 0; index < this.roof[roofType].objects.length; index++) {
+      const element = this.roof[roofType].objects[index];
+
+      if (element.object.isGroup) {
+        for (let index = 0; index < element.object.children.length; index++) {
+          const ge = element.object.children[index];
+          ge.visible = status;
+        }
+      } else {
+        element.object.visible = status;
+      }
+
+      if (status === false && reset === true) {
+        element.active = false;
+      }
+    }
+  }
+
+  setTails(roofType, FL_point, FR_point, middleTails = true) {
+    let wrapkitName;
+
+    switch (roofType) {
+      case "solid":
+        wrapkitName = "roofSolidWrapkit";
+        break;
+      case "solidnon":
+        wrapkitName = "roofSolidnonWrapkit";
+        break;
+      case "combo":
+        wrapkitName = "roofComboSolidWrapkit";
+        break;
+
+      default:
+        wrapkitName = "roofSolidWrapkit";
+        break;
+    }
+
+    let tailQty = 0;
+
+    if (middleTails) {
+      tailQty = this.settings.postHasDoubleHeader
+        ? Math.floor(
+            (this.settings.width * 0.3048) /
+              this.settings.rafterWidthIntervalDouble_m
+          ) - 1
+        : Math.floor(
+            (this.settings.width * 0.3048) /
+              this.settings.rafterWidthIntervalSingle_m
+          ) - 1;
+    }
+
+    let deltaX = 0;
+
+    if (this.settings[wrapkitName] === PergolaRoofWrapkit._2x6) {
+      deltaX =
+        this.settings.postHasDoubleHeader && middleTails ? 0.0716 : 0.021;
+    } else {
+      deltaX =
+        this.settings.postHasDoubleHeader && middleTails ? 0.0465 : -0.0045;
+    }
+
+    let deltaScaleX = 0;
+
+    if (this.settings.postHasDoubleHeader && middleTails) {
+      deltaScaleX = this.interpolateValue(
+        this.settings.width,
+        8,
+        44,
+        -0.0026,
+        -0.0139
+      );
+    } else {
+      deltaScaleX = this.interpolateValue(
+        this.settings.width,
+        8,
+        44,
+        -0.003,
+        -0.0143
+      );
+    }
+
+    const startPoint = FL_point.clone().add(
+      new THREE.Vector3(deltaX + deltaScaleX, 0, 0)
+    );
+    const endPoint = FR_point.clone().add(
+      new THREE.Vector3(-deltaX - deltaScaleX, 0, 0)
+    );
+    const tail_points = generateMidpoints(startPoint, endPoint, tailQty, true);
+
+    this.setTailPosition(tail_points, middleTails);
+  }
+
+  getAvaliableTailFromArray(objects, headtype, endcut, side) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+      if (element.active == true) {
+        continue;
+      }
+      if (
+        element.type === headtype &&
+        element.endcut === endcut &&
+        element.side === side
+      ) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  changeHeadVisibility(
+    status,
+    headPlace = null,
+    reset = false,
+    headType = null
+  ) {
+    if (this.head == null) {
+      return;
+    }
+    if (this.head.objects == null) {
+      return;
+    }
+
+    for (let index = 0; index < this.head.objects.length; index++) {
+      const element = this.head.objects[index];
+
+      if (headType != null) {
+        if (element.type != headType) {
+          continue;
+        }
+      }
+
+      if (headPlace != null) {
+        if (element.place != headPlace) {
+          continue;
+        }
+      }
+
+      if (element.isLock) {
+        continue;
+      }
+
+      if (element.object.isGroup) {
+        for (let index = 0; index < element.object.children.length; index++) {
+          const ge = element.object.children[index];
+          ge.visible = status;
+        }
+      } else {
+        element.object.visible = status;
+      }
+
+      if (status === false && reset === true) {
+        element.place = null;
+        element.active = false;
+      }
+    }
+  }
+
+  setGutters() {
+    const { FL_post_point, FR_post_point, RL_post_point, RR_post_point } =
+      this.getPostPoints();
+
+    if (!this.settings.mountingWall_Back && !this.settings.mountingWall_Left) {
+      this.setGutterPosition([RL_post_point], PergolaSide.Back);
+    }
+
+    if (!this.settings.mountingWall_Back && !this.settings.mountingWall_Right) {
+      this.setGutterPosition([RR_post_point], PergolaSide.Back);
+    }
+
+    if (!this.settings.mountingWall_Left) {
+      this.setGutterPosition([FL_post_point], PergolaSide.Front);
+    }
+
+    if (!this.settings.mountingWall_Right) {
+      this.setGutterPosition([FR_post_point], PergolaSide.Front);
+    }
+  }
+
+  setGutterPosition(points, side = null) {
+    const gutters = this.roof.solid.objects;
+
+    for (let index = 0; index < points.length; index++) {
+      const point = points[index];
+      const element = this.getAvaliableGutterObjectFromArray(
+        gutters,
+        PergolaRoofObjectType.gutter,
+        side
+      );
+      if (element == null) {
+        return;
+      }
+      element.object.position.x = point.x;
+      element.object.position.z = point.z;
+
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+      element.side = side;
+    }
+
+    const objects = this.roof.solid.objects;
+  }
+
+  getAvaliableGutterObjectFromArray(objects, type, side) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+
+      if (element.active == true) {
+        continue;
+      }
+
+      if (element.type === type && element.side === side) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  changeRafterVisibility(
+    status,
+    rafterPlace = null,
+    reset = false,
+    rafterType = null
+  ) {
+    if (this.rafter == null) {
+      return;
+    }
+    if (this.rafter.objects == null) {
+      return;
+    }
+
+    for (let index = 0; index < this.rafter.objects.length; index++) {
+      const element = this.rafter.objects[index];
+
+      if (rafterType != null) {
+        if (element.type != rafterType) {
+          continue;
+        }
+      }
+
+      if (rafterPlace != null) {
+        if (element.place != rafterPlace) {
+          continue;
+        }
+      }
+
+      if (element.isLock) {
+        continue;
+      }
+
+      if (element.object.isGroup) {
+        for (let index = 0; index < element.object.children.length; index++) {
+          const ge = element.object.children[index];
+          ge.visible = status;
+        }
+      } else {
+        element.object.visible = status;
+      }
+
+      if (status === false && reset === true) {
+        element.place = null;
+        element.active = false;
+      }
+    }
+  }
+
+  changeTailVisibility(status, reset = false, tailType = null) {
+    if (this.tail == null) {
+      return;
+    }
+    if (this.tail.objects == null) {
+      return;
+    }
+
+    for (let index = 0; index < this.tail.objects.length; index++) {
+      const element = this.tail.objects[index];
+
+      if (tailType != null) {
+        if (element.type != tailType) {
+          continue;
+        }
+      }
+
+      if (element.object.isGroup) {
+        for (let index = 0; index < element.object.children.length; index++) {
+          const ge = element.object.children[index];
+          ge.visible = status;
+        }
+      } else {
+        element.object.visible = status;
+      }
+
+      if (status === false && reset === true) {
+        element.active = false;
+      }
+    }
+  }
+
+  setHeadPosition(points, place = null) {
+    const heads = this.head.objects;
+    let headType = state.beam
+      ? PergolaPostHeadtype.double
+      : PergolaPostHeadtype.single;
+
+    if (
+      place === PergolaPostPlace.Back &&
+      this.settings.roofMount &&
+      this.settings.mountingWall_Back
+    ) {
+      headType = PergolaPostHeadtype.single;
+    }
+
+    let endcut = this.settings.endcutType;
+
+    if (state.roofType == PergolaRoofType.Louvered) {
+      headType = PergolaPostHeadtype.louvered;
+      endcut = null;
+    }
+
+    for (let index = 0; index < points.length; index++) {
+      const point = points[index];
+      const element = this.getAvaliableHeadOrRafterFromArray(
+        heads,
+        headType,
+        endcut
+      );
+      if (element == null) {
+        return;
+      }
+      element.object.position.x = 0;
+      element.object.position.z = point.z;
+
+      this.changeObjectVisibility(true, element.object);
+      element.active = true;
+      element.place = place;
+    }
+  }
+
+  setRoof() {
+    this.changeRoofVisibility(false, "rafterBevelSingle", null, true);
+    this.changeRoofVisibility(false, "rafterBevelDouble", null, true);
+
+    this.changeRoofVisibility(false, "rafterBevelSingleCut", null, true);
+    this.changeRoofVisibility(false, "rafterBevelDoubleCut", null, true);
+
+    this.changeRoofVisibility(false, "rafterBevelSingleShot", null, true);
+    this.changeRoofVisibility(false, "rafterBevelDoubleShot", null, true);
+    this.changeRoofVisibility(false, "rafterBevelSingleShotBack", null, true);
+    this.changeRoofVisibility(false, "rafterBevelDoubleShotBack", null, true);
+
+    this.changeRoofVisibility(false, "rafterMiterSingle", null, true);
+    this.changeRoofVisibility(false, "rafterMiterDouble", null, true);
+
+    this.changeRoofVisibility(false, "rafterMiterSingleCut", null, true);
+    this.changeRoofVisibility(false, "rafterMiterDoubleCut", null, true);
+
+    this.changeRoofVisibility(false, "rafterMiterSingleShot", null, true);
+    this.changeRoofVisibility(false, "rafterMiterDoubleShot", null, true);
+    this.changeRoofVisibility(false, "rafterMiterSingleShotBack", null, true);
+    this.changeRoofVisibility(false, "rafterMiterDoubleShotBack", null, true);
+
+    this.changeRoofVisibility(false, "rafterCorbelSingle", null, true);
+    this.changeRoofVisibility(false, "rafterCorbelDouble", null, true);
+
+    this.changeRoofVisibility(false, "rafterCorbelSingleCut", null, true);
+    this.changeRoofVisibility(false, "rafterCorbelDoubleCut", null, true);
+
+    this.changeRoofVisibility(false, "rafterCorbelSingleShot", null, true);
+    this.changeRoofVisibility(false, "rafterCorbelDoubleShot", null, true);
+    this.changeRoofVisibility(false, "rafterCorbelSingleShotBack", null, true);
+    this.changeRoofVisibility(false, "rafterCorbelDoubleShotBack", null, true);
+
+    this.changeRoofVisibility(false, "rafterScallopSingle", null, true);
+    this.changeRoofVisibility(false, "rafterScallopDouble", null, true);
+
+    this.changeRoofVisibility(false, "rafterScallopSingleCut", null, true);
+    this.changeRoofVisibility(false, "rafterScallopDoubleCut", null, true);
+
+    this.changeRoofVisibility(false, "rafterScallopSingleShot", null, true);
+    this.changeRoofVisibility(false, "rafterScallopDoubleShot", null, true);
+    this.changeRoofVisibility(false, "rafterScallopSingleShotBack", null, true);
+    this.changeRoofVisibility(false, "rafterScallopDoubleShotBack", null, true);
+
+    this.changeRoofVisibility(false, "lattice2x2X", null, true);
+    this.changeRoofVisibility(false, "lattice3x3X", null, true);
+
+    this.changeRoofVisibility(false, "lattice2x2Y", null, true);
+    this.changeRoofVisibility(false, "lattice3x3Y", null, true);
+
+    this.changeRoofVisibility(false, "solidFrame", null, true);
+    this.changeRoofVisibility(false, "solidRoof", null, true);
+
+    this.changeRoofVisibility(false, "louverX", null, true);
+    this.changeRoofVisibility(false, "louverY", null, true);
+
+    const typeLattice = state.roofType === 0;
+    const typeSolid = state.roofType === 1;
+    const typeCombo = state.roofType === 2; // COMBO not louver
+
+    const offsetX = -0.15;
+    const { FL_point, RL_point, FR_point, RR_point } =
+      this.getCornerPoints(offsetX);
+
+    const rafterInterval = 2;
+    const countRafters =
+      Math.floor(
+        (state.directionRoof ? state.length : state.width) / rafterInterval
+      ) - 2;
+
+    const spacing = this.inchesToMeters(state.spacing);
+
+    const widthWithSpacing = pergola.settings.latticeSize
+      ? 0.17 + spacing
+      : 0.26 + spacing;
+    const halfDirection = state.directionRoof ? 4 : 1;
+
+    const countLatticeX =
+      Math.floor(state.length / widthWithSpacing - 2) / halfDirection;
+
+    const countLatticeY = Math.floor(state.width / widthWithSpacing - 2);
+
+    const firstCornerWithSingleOffset = new THREE.Vector3(
+      RL_point.x - 0.05,
+      RL_point.y,
+      RL_point.z
+    );
+
+    const secondCornerWithSingleOffset = new THREE.Vector3(
+      FR_point.x + 0.05,
+      FR_point.y,
+      FR_point.z
+    );
+
+    const newRL = offsetVector(RL_point, { z: 0.1 });
+    const newFR = offsetVector(FR_point, { z: -0.1 });
+
+    const newRLrafter = offsetVector(RL_point, {
+      x: this.inchesToMeters(state.overhang) - 0.3,
+      z: this.inchesToMeters(state.overhang) - 0.2,
+    });
+    const newFRrafter = offsetVector(FR_point, {
+      x: -this.inchesToMeters(state.overhang) + 0.3,
+      z: -this.inchesToMeters(state.overhang) + 0.2,
+    });
+
+    const pointForRafter = generateMidpoints(
+      newRLrafter,
+      newFRrafter,
+      countRafters,
+      true
+    );
+
+    const newRLrafterSingle = offsetVector(RL_point, {
+      x: -0.06,
+    });
+    const newFRrafterSingle = offsetVector(FR_point, {
+      x: 0.06,
+    });
+
+    const pointForRafterSolid = generateMidpoints(
+      state.rafter ? RL_point : newRLrafterSingle,
+      state.rafter ? FR_point : newFRrafterSingle,
+      countRafters,
+      true
+    );
+
+    pergola.settings.countRafter = pointForRafter;
+
+    const pointLatticeX = generateMidpoints(
+      state.directionRoof ? newRL : RL_point,
+      state.directionRoof ? newFR : FR_point,
+      countLatticeX,
+      true
+    );
+
+    function offsetVector(vector, offset) {
+      return new Vec3(
+        vector.x + (offset.x || 0),
+        vector.y + (offset.y || 0),
+        vector.z + (offset.z || 0)
+      );
+    }
+
+    const pointLatticeY = generateMidpoints(
+      offsetVector(FL_point, { x: -0.05 }),
+      offsetVector(FR_point, { x: 0.05 }),
+      countLatticeY,
+      true
+    );
+
+    function setShotOnCorner() {
+      const shortRafterType = pergola.roof.rafterBevelSingleShot;
+
+      const pointCornerRafter = [
+        firstCornerWithSingleOffset,
+        secondCornerWithSingleOffset,
+      ];
+
+      let middleIndex = Math.floor(shortRafterType.length / 2);
+      let firstHalfFront = shortRafterType.slice(0, middleIndex);
+      let secondHalfBack = shortRafterType.slice(middleIndex);
+
+      pergola.setBeamsPosition(pointCornerRafter, firstHalfFront, true);
+      pergola.setBeamsPosition(pointCornerRafter, secondHalfBack, true, true); // rotate shot
+    }
+
+    // RAFTER
+    function processRafterCut(rafterType, pointForRafter) {
+      this.setTailPosition(pointForRafter, rafterType, true);
+    }
+
+    if (state.endCuts) {
+      const compareForSolid = !state.rafter;
+
+      const typeOfRafter = !state.rafter ? "Single" : "Double";
+
+      const rafterTypeKey = `rafter${
+        ["Bevel", "Miter", "Corbel", "Scallop"][state.endCuts - 1]
+      }${typeOfRafter}`;
+
+      const rafterShotKey = `rafter${
+        ["Bevel", "Miter", "Corbel", "Scallop"][state.endCuts - 1]
+      }${compareForSolid ? "SingleShot" : "DoubleShot"}`;
+
+      const rafterType = this.roof[rafterTypeKey];
+      const rafterShotType = this.roof[rafterShotKey];
+      const rafterShotTypeBack = this.roof[rafterShotKey + "Back"];
+
+      switch (true) {
+        case typeLattice:
+          console.log("typeLattice RAFTER");
+
+          state.directionRoof
+            ? this.setBeamsPosition(pointForRafter, rafterType, false, true)
+            : this.setBeamsPosition(pointForRafter, rafterType, true);
+          break;
+
+        case typeSolid:
+          if (state.tails) {
+            ChangeGlobalMorph("1", 0);
+
+            processRafterCut.call(this, rafterShotType, pointForRafterSolid);
+            processRafterCut.call(
+              this,
+              rafterShotTypeBack,
+              pointForRafterSolid
+            );
+          } else if (state.wrapKit) {
+            const newRLrafterDouble = offsetVector(RL_point, {
+              x: 0,
+            });
+            const newFRrafterDouble = offsetVector(FR_point, {
+              x: 0,
+            });
+
+            processRafterCut.call(this, rafterShotType, [
+              state.rafter ? newRLrafterDouble : newRLrafterSingle,
+              state.rafter ? newFRrafterDouble : newFRrafterSingle,
+            ]);
+            processRafterCut.call(this, rafterShotTypeBack, [
+              state.rafter ? newRLrafterDouble : newRLrafterSingle,
+              state.rafter ? newFRrafterDouble : newFRrafterSingle,
+            ]);
+          }
+          break;
+
+        case typeCombo:
+          this.setBeamsPosition(
+            pointForRafter.slice(0, pointForRafter.length / 2),
+            rafterType,
+            true
+          );
+          break;
+      }
+    }
+
+    ChangeGlobalMorph("-2", 1);
+
+    switch (true) {
+      // TYPE LETTICE
+      case typeLattice && !state.removeLettice:
+        const latticeX = !state.thickness
+          ? this.roof.lattice2x2X
+          : this.roof.lattice3x3X;
+        const latticeY = !state.thickness
+          ? this.roof.lattice2x2Y
+          : this.roof.lattice3x3Y;
+
+        // latticeX.object.position.x = 0;
+
+        // LATTICE X
+
+        ChangeGlobalMorph("-2", 0.5);
+
+        // LATTICE Y
+        if (state.directionRoof) {
+          this.setLatticePosition(pointLatticeY, true);
+        } else {
+          this.setLatticePosition(pointLatticeX);
+        }
+
+        break;
+
+      //TYPE SOLID
+      case typeSolid:
+        break;
+    }
+  }
+
+  setRoofBeam() {
+    this.changeRoofVisibility(false, "headBevelSingle", null, true);
+    this.changeRoofVisibility(false, "headBevelDouble", null, true);
+
+    this.changeRoofVisibility(false, "headMiterSingle", null, true);
+    this.changeRoofVisibility(false, "headMiterDouble", null, true);
+
+    this.changeRoofVisibility(false, "headCorbelSingle", null, true);
+    this.changeRoofVisibility(false, "headCorbelDouble", null, true);
+
+    this.changeRoofVisibility(false, "headScallopSingle", null, true);
+    this.changeRoofVisibility(false, "headScallopDouble", null, true);
+
+    this.changeRoofVisibility(false, "louverFrame", null, true);
+
+    this.changeRoofVisibility(false, "louverBeamX", null, true);
+    this.changeRoofVisibility(false, "louverBeamY", null, true);
+
+    const typeCombo = state.roofType === 2; //COMBO
+    const typeSolid = state.roofType === 1;
+
+    const changedOverhang = this.inchesToMeters(-state.overhang);
+
+    const offsetForOverhangPosts = changedOverhang;
+
+    const { FL_point, RL_point, FR_point } = this.getCornerPoints(
+      offsetForOverhangPosts,
+      offsetForOverhangPosts
+    );
+
+    const { point_post_length, point_post_width, point_louver_width } =
+      this.getPostPoints(offsetForOverhangPosts, offsetForOverhangPosts);
+
+    const pointForBeam =
+      state.backWall && state.wallOption !== 3
+        ? [FL_point, ...point_post_length]
+        : [FL_point, ...point_post_length, RL_point];
+
+    const pointForBeamDir = [
+      state.leftWall ? null : FL_point,
+      ...point_post_width,
+      state.rightWall ? null : FR_point,
+    ].filter((el) => el !== null);
+
+    const pointHeader = state.directionRoof ? pointForBeamDir : pointForBeam;
+
+    // HEADER
+    switch (state.endCuts) {
+      case 1:
+        const roofBevel = !state.beam
+          ? this.roof.headBevelSingle
+          : this.roof.headBevelDouble;
+
+        state.directionRoof
+          ? this.setBeamsPosition(pointHeader, roofBevel, true, true)
+          : this.setBeamsPosition(pointHeader, roofBevel);
+        break;
+
+      case 2:
+        const roofMiter = !state.beam
+          ? this.roof.headMiterSingle
+          : this.roof.headMiterDouble;
+
+        state.directionRoof
+          ? this.setBeamsPosition(pointHeader, roofMiter, true, true)
+          : this.setBeamsPosition(pointHeader, roofMiter);
+        break;
+
+      case 3:
+        const roofCorbel = !state.beam
+          ? this.roof.headCorbelSingle
+          : this.roof.headCorbelDouble;
+
+        state.directionRoof
+          ? this.setBeamsPosition(pointHeader, roofCorbel, true, true)
+          : this.setBeamsPosition(pointHeader, roofCorbel);
+        break;
+
+      case 4:
+        const roofScallop = !state.beam
+          ? this.roof.headScallopSingle
+          : this.roof.headScallopDouble;
+
+        state.directionRoof
+          ? this.setBeamsPosition(pointHeader, roofScallop, true, true)
+          : this.setBeamsPosition(pointHeader, roofScallop);
+        break;
+
+      default:
+        break;
     }
   }
 
@@ -5173,6 +7749,7 @@ export class PergolaObject {
 
   setPostsPosition(nameArray, points, side = false) {
     const posts = this.post[nameArray];
+    const offsetWrapKit = state.wrapKit ? 0.07 : 0.12;
 
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
@@ -5186,33 +7763,62 @@ export class PergolaObject {
         element.object.position.set(point.x, point.y, point.z);
       } else {
         switch (nameArray) {
-          case "leftCenter":
+          case "postHeadsOneLeft":
+          case "postHeadsTwoLeft":
+          case "postSquareLeft":
+          case "postRoundLeft":
+          case "post3x3Left":
             element.object.position.z = point.z;
-            // element.object.position.x = -point.x;
+            element.object.position.x = -point.x;
 
             break;
 
-          case "rightCenter":
+          case "postHeadsOneRight":
+          case "postHeadsTwoRight":
+          case "postSquareRight":
+          case "postRoundRight":
+          case "post3x3Right":
             element.object.position.z = point.z;
-            // element.object.position.x = point.x;
+            element.object.position.x = point.x;
 
             break;
 
-          case "backCenter":
+          case "postHeadsOneBack":
+          case "postHeadsTwoBack":
+          case "postSquareBack":
+          case "postRoundBack":
+          case "post3x3Back":
             element.object.position.x = point.x;
-            // element.object.position.z = -point.z;
+            element.object.position.z = -point.z;
 
             break;
 
-          case "frontCenter":
+          case "postHeadsOneFront":
+          case "postHeadsTwoFront":
+          case "postSquareFront":
+          case "postRoundFront":
+          case "post3x3Front":
             element.object.position.x = point.x;
-            // element.object.position.z = point.z;
+            element.object.position.z = point.z;
+            break;
 
+          case "rainFront":
+          case "rainCornerFront":
+            element.object.position.x = point.x;
+            element.object.position.z = point.z - offsetWrapKit;
+            break;
+
+          case "rainBack":
+            element.object.position.x = point.x;
+            element.object.position.z = -point.z + offsetWrapKit;
+            break;
+
+          case "rainCornerBack":
+            element.object.position.x = point.x;
+            element.object.position.z = point.z + offsetWrapKit;
             break;
         }
       }
-
-      console.log(element);
 
       this.changeObjectVisibility(true, element.object);
       element.active = true;
@@ -5244,7 +7850,6 @@ export class PergolaObject {
       this.post[side].push(postObject);
     }
   }
-
   getPost(side) {
     let element;
 
@@ -5252,41 +7857,87 @@ export class PergolaObject {
       return;
     }
 
-    if (side === "leftCenter") {
+    if (
+      side === "postSquare" ||
+      side === "postSquareLeft" ||
+      side === "postSquareRight" ||
+      side === "postSquareBack" ||
+      side === "postSquareFront"
+    ) {
       model.traverse((o) => {
-        if (o.name === "post_CL") {
+        if (o.name === "post_square") {
           element = o;
         }
       });
     }
 
-    if (side === "rightCenter") {
+    if (
+      side === "postRound" ||
+      side === "postRoundLeft" ||
+      side === "postRoundRight" ||
+      side === "postRoundBack" ||
+      side === "postRoundFront"
+    ) {
       model.traverse((o) => {
-        if (o.name === "post_CR") {
+        if (o.name === "post_round") {
           element = o;
         }
       });
     }
 
-    if (side === "frontCenter") {
+    if (
+      side === "postHeadsOne" ||
+      side === "postHeadsOneLeft" ||
+      side === "postHeadsOneRight" ||
+      side === "postHeadsOneBack" ||
+      side === "postHeadsOneFront"
+    ) {
       model.traverse((o) => {
-        if (o.name === "post_FC") {
+        if (o.name === "post_standart_1_heads") {
           element = o;
         }
       });
     }
 
-    if (side === "backCenter") {
+    if (
+      side === "postHeadsTwo" ||
+      side === "postHeadsTwoLeft" ||
+      side === "postHeadsTwoRight" ||
+      side === "postHeadsTwoBack" ||
+      side === "postHeadsTwoFront"
+    ) {
       model.traverse((o) => {
-        if (o.name === "post_BC") {
+        if (o.name === "post_standart_2_heads") {
           element = o;
         }
       });
     }
 
-    if (side === "centerCenter") {
+    if (
+      side === "post3x3" ||
+      side === "post3x3Left" ||
+      side === "post3x3Right" ||
+      side === "post3x3Back" ||
+      side === "post3x3Front"
+    ) {
       model.traverse((o) => {
-        if (o.name === "post_C") {
+        if (o.name === "post_3x3") {
+          element = o;
+        }
+      });
+    }
+
+    if (side === "rainFront" || side === "rainCornerFront") {
+      model.traverse((o) => {
+        if (o.name === "rain_front") {
+          element = o;
+        }
+      });
+    }
+
+    if (side === "rainBack" || side === "rainCornerBack") {
+      model.traverse((o) => {
+        if (o.name === "rain_back") {
           element = o;
         }
       });
@@ -5376,6 +8027,7 @@ export class PergolaObject {
 
   cloneExtraOptionObject(type, count) {
     var element = this.extraOptions.elements.find((item) => item.type == type);
+
     if (element == null && type != PergolaExtraOptionType.moodLight) {
       return;
     }
@@ -5464,12 +8116,110 @@ export class PergolaObject {
     this.cloneLouveredObject(count);
   }
 
+  prepareRoof() {
+    const prepareCountHead = 7;
+    const prepareCountSolidRoof = Math.floor(MORPH_DATA.width.max / 0.5) * 2;
+    const countLattice = MORPH_DATA.length.max / 0.0254;
+    const prepareCountRafter = MORPH_DATA.width.max / 2; //rafter Interval
+    const prepareCountRafterShot = prepareCountRafter * 4;
+
+    this.cloneRoofObject("headerBackWall", prepareCountHead);
+
+    // HEADER
+    this.cloneRoofObject("headBevelSingle", prepareCountHead);
+    this.cloneRoofObject("headBevelDouble", prepareCountHead);
+
+    this.cloneRoofObject("headMiterSingle", prepareCountHead);
+    this.cloneRoofObject("headMiterDouble", prepareCountHead);
+
+    this.cloneRoofObject("headCorbelSingle", prepareCountHead);
+    this.cloneRoofObject("headCorbelDouble", prepareCountHead);
+
+    this.cloneRoofObject("headScallopSingle", prepareCountHead);
+    this.cloneRoofObject("headScallopDouble", prepareCountHead);
+
+    // RAFTER
+    this.cloneRoofObject("rafterBevelSingle", prepareCountRafter);
+    this.cloneRoofObject("rafterBevelDouble", prepareCountRafter);
+
+    this.cloneRoofObject("rafterBevelSingleCut", prepareCountRafterShot);
+    this.cloneRoofObject("rafterBevelDoubleCut", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterBevelSingleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterBevelDoubleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterBevelSingleShotBack", prepareCountRafterShot);
+    this.cloneRoofObject("rafterBevelDoubleShotBack", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterMiterSingle", prepareCountRafter);
+    this.cloneRoofObject("rafterMiterDouble", prepareCountRafter);
+
+    this.cloneRoofObject("rafterMiterSingleCut", prepareCountRafterShot);
+    this.cloneRoofObject("rafterMiterDoubleCut", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterMiterSingleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterMiterDoubleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterMiterSingleShotBack", prepareCountRafterShot);
+    this.cloneRoofObject("rafterMiterDoubleShotBack", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterCorbelSingle", prepareCountRafter);
+    this.cloneRoofObject("rafterCorbelDouble", prepareCountRafter);
+
+    this.cloneRoofObject("rafterCorbelSingleCut", prepareCountRafterShot);
+    this.cloneRoofObject("rafterCorbelDoubleCut", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterCorbelSingleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterCorbelDoubleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterCorbelSingleShotBack", prepareCountRafterShot);
+    this.cloneRoofObject("rafterCorbelDoubleShotBack", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterScallopSingle", prepareCountRafter);
+    this.cloneRoofObject("rafterScallopDouble", prepareCountRafter);
+
+    this.cloneRoofObject("rafterScallopSingleCut", prepareCountRafterShot);
+    this.cloneRoofObject("rafterScallopDoubleCut", prepareCountRafterShot);
+
+    this.cloneRoofObject("rafterScallopSingleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterScallopDoubleShot", prepareCountRafterShot);
+    this.cloneRoofObject("rafterScallopSingleShotBack", prepareCountRafterShot);
+    this.cloneRoofObject("rafterScallopDoubleShotBack", prepareCountRafterShot);
+
+    // LATTICE
+    this.cloneRoofObject("lattice2x2X", countLattice);
+    this.cloneRoofObject("lattice3x3X", countLattice);
+
+    this.cloneRoofObject("lattice2x2Y", countLattice);
+    this.cloneRoofObject("lattice3x3Y", countLattice);
+
+    //SOLID FRAME
+    this.cloneRoofObject("solidFrame", 1);
+    this.cloneRoofObject("solidRoof", prepareCountSolidRoof);
+
+    //LOUVER FRAME
+    this.cloneRoofObject("louverFrame", 1);
+
+    this.cloneRoofObject("louverX", prepareCountSolidRoof);
+    this.cloneRoofObject("louverY", prepareCountSolidRoof);
+
+    this.cloneRoofObject("louverBeamX", prepareCountRafter);
+    this.cloneRoofObject("louverBeamY", prepareCountRafter);
+
+    this.cloneRoofObject("headerBackWall", 1);
+
+    // RAIN
+    this.cloneRoofObject("rainShield", 1);
+
+    // RAIN
+    this.cloneRoofObject("fanBeam", prepareCountRafter);
+  }
+
   prepareOptions() {
     // this.cloneInObject("heatersFront", 8 * 4);
     // this.cloneInObject("heatersBack", 8 * 4);
     this.cloneInObject("fans", 8 * 4);
-    this.cloneInObject("fansBeamX", 8 * 4);
+    this.cloneInObject("fansBeam", 8 * 4);
     this.cloneInObject("fansBeamY", 8 * 4);
+    this.cloneInObject("leds", 8 * 4);
+    this.cloneInObject("ledsDifSide", 8 * 4);
   }
 
   cloneInObject(
@@ -5501,31 +8251,6 @@ export class PergolaObject {
       roofObject.object = clonedMesh;
       this[type].push(roofObject);
     }
-  }
-
-  prepareRoof() {
-    const prepareCountBeam = 5;
-    const prepareCountLouver =
-      Math.ceil(this.getMeters(MORPH_DATA.width.max) / 0.17989) * 5;
-
-    this.cloneRoofObject("headerLed", 1);
-
-    // BEAM
-    this.cloneRoofObject("beamX", prepareCountBeam);
-    this.cloneRoofObject("beamXLed", prepareCountBeam);
-
-    this.cloneRoofObject("beamY", prepareCountBeam);
-    this.cloneRoofObject("beamYLed", prepareCountBeam);
-
-    // LOUVER
-    this.cloneRoofObject("louverY", prepareCountLouver);
-    this.cloneRoofObject("louverX", prepareCountLouver);
-
-    this.cloneRoofObject("solidRoof", 1);
-
-    this.cloneRoofObject("pointLED", 500);
-    this.cloneRoofObject("rampLEDX", 100);
-    this.cloneRoofObject("rampLEDY", 100);
   }
 
   cloneRoofObject(
@@ -5562,10 +8287,20 @@ export class PergolaObject {
   animateFans() {
     const animationStates = new WeakMap();
 
-    console.log(pergola.fans);
+    const fanObjects = this.fans;
 
-    for (let i = 0; i < pergola.fans.length; i++) {
-      const elementFan = pergola.fans[i];
+    const fanObjectsCombo = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.fan
+    );
+
+    for (let i = 0; i < fanObjects.length; i++) {
+      const elementFan = fanObjects[i];
+
+      this.animateGroup(elementFan.object, true, animationStates);
+    }
+
+    for (let i = 0; i < fanObjectsCombo.length; i++) {
+      const elementFan = fanObjectsCombo[i];
 
       this.animateGroup(elementFan.object, true, animationStates);
     }
@@ -5599,27 +8334,373 @@ export class PergolaObject {
   getRoofElement(type = "beams", name = null) {
     let element;
 
-    //BEAM
-    if (type === "beamX") {
+    if (type === "headerBackWall") {
       model.traverse((o) => {
-        if (o.name === "beam_x") {
-          element = o;
-          console.log(o, "BEAM");
-        }
-      });
-    }
-
-    if (type === "beamY") {
-      model.traverse((o) => {
-        if (o.name === "beam_Y") {
+        if (o.name === "beam_X") {
           element = o;
         }
       });
     }
 
-    if (type === "louverY") {
+    //HEADER
+    if (type === "headBevelSingle") {
       model.traverse((o) => {
-        if (o.name === "louver_Y") {
+        if (o.name === "head_bevel_1") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headBevelDouble") {
+      model.traverse((o) => {
+        if (o.name === "head_bevel_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headMiterSingle") {
+      model.traverse((o) => {
+        if (o.name === "head_miter_1") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headMiterDouble") {
+      model.traverse((o) => {
+        if (o.name === "head_miter_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headCorbelSingle") {
+      model.traverse((o) => {
+        if (o.name === "head_corbel_1") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headCorbelDouble") {
+      model.traverse((o) => {
+        if (o.name === "head_corbel_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headScallopSingle") {
+      model.traverse((o) => {
+        if (o.name === "head_scallop_1") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "headScallopDouble") {
+      model.traverse((o) => {
+        if (o.name === "head_scallop_2") {
+          element = o;
+        }
+      });
+    }
+
+    //RAFTER
+
+    if (type === "rafterBevelSingle") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_1") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterBevelDouble") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterBevelSingleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_1_cut") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterBevelDoubleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_2_cut") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterBevelSingleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_1_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterBevelDoubleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_2_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterBevelSingleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_1_shot001") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterBevelDoubleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_bevel_2_shot001") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterMiterSingle") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_1") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterMiterDouble") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterMiterSingleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_1_cut") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterMiterDoubleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_2_cut") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterMiterSingleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_1_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterMiterDoubleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_2_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterMiterSingleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_1_shot001") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterMiterDoubleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_miter_2_shot001") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterCorbelSingle") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_1") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterCorbelDouble") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterCorbelSingleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_1_cut") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterCorbelDoubleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_2_cut") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterCorbelSingleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_1_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterCorbelDoubleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_2_shot") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterCorbelSingleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_1_shot001") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterCorbelDoubleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_corbel_2_shot001") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterScallopSingle") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_1") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterScallopDouble") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_2") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterScallopSingleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_1_cut") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterScallopDoubleCut") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_2_cut") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "rafterScallopSingleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_1_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterScallopDoubleShot") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_2_shot") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterScallopSingleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_1_shot001") {
+          element = o;
+        }
+      });
+    }
+    if (type === "rafterScallopDoubleShotBack") {
+      model.traverse((o) => {
+        if (o.name === "rafter_scallop_2_shot001") {
+          element = o;
+        }
+      });
+    }
+
+    // LATTICE
+
+    if (type === "lattice2x2X") {
+      model.traverse((o) => {
+        if (o.name === "lattice_2x2_X") {
+          element = o;
+        }
+      });
+    }
+    if (type === "lattice3x3X") {
+      model.traverse((o) => {
+        if (o.name === "lattice_3x3_X") {
+          element = o;
+        }
+      });
+    }
+
+    if (type === "lattice2x2Y") {
+      model.traverse((o) => {
+        if (o.name === "lattice_2x2_Y") {
+          element = o;
+        }
+      });
+    }
+    if (type === "lattice3x3Y") {
+      model.traverse((o) => {
+        if (o.name === "lattice_3x3_Y") {
+          element = o;
+        }
+      });
+    }
+
+    // SOLID FRAME
+    if (type === "solidFrame") {
+      model.traverse((o) => {
+        if (o.name === "solid_frame") {
+          element = o;
+        }
+      });
+    }
+
+    // SOLID ROOF
+    if (type === "solidRoof") {
+      model.traverse((o) => {
+        if (o.name === "solid_roof") {
+          element = o;
+        }
+      });
+    }
+
+    // LOUVER
+    if (type === "louverFrame") {
+      model.traverse((o) => {
+        if (o.name === "louvered_frame") {
           element = o;
         }
       });
@@ -5632,7 +8713,55 @@ export class PergolaObject {
         }
       });
     }
+    if (type === "louverY") {
+      model.traverse((o) => {
+        if (o.name === "louver_Y") {
+          element = o;
+        }
+      });
+    }
 
+    if (type === "louverBeamX") {
+      model.traverse((o) => {
+        if (o.name === "louvered_baem_X") {
+          element = o;
+        }
+      });
+    }
+    if (type === "louverBeamY") {
+      model.traverse((o) => {
+        if (o.name === "louvered_baem_Y") {
+          element = o;
+        }
+      });
+    }
+
+    //OPTIONS
+    if (type === "fans") {
+      model.traverse((o) => {
+        if (o.name === "fan") {
+          element = o;
+        }
+      });
+    }
+    if (type === "pointLights") {
+      model.traverse((o) => {
+        if (o.name === "point-light") {
+          element = o;
+        }
+      });
+    }
+
+    //RAIN
+    if (type === "rainShield") {
+      model.traverse((o) => {
+        if (o.name === "rain_shield") {
+          element = o;
+        }
+      });
+    }
+
+    //BEAM
     if (type === "fans") {
       model.traverse((o) => {
         if (o.name === "fan") {
@@ -5641,48 +8770,10 @@ export class PergolaObject {
       });
     }
 
-    if (type === "pointLED") {
+    //FANS
+    if (type === "fansBeam") {
       model.traverse((o) => {
-        if (o.name === "point-light") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "rampLEDX") {
-      model.traverse((o) => {
-        if (o.name === "LED_ramp") {
-          element = o;
-        }
-      });
-    }
-    if (type === "rampLEDY") {
-      model.traverse((o) => {
-        if (o.name === "LED_ramp_Y") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "heatersFront") {
-      model.traverse((o) => {
-        if (o.name === "Cube001") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "heatersBack") {
-      model.traverse((o) => {
-        if (o.name === "Cube004") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "fansBeamX") {
-      model.traverse((o) => {
-        if (o.name === "beam_x_fan") {
+        if (o.name === "beam") {
           element = o;
         }
       });
@@ -5690,39 +8781,16 @@ export class PergolaObject {
 
     if (type === "fansBeamY") {
       model.traverse((o) => {
-        if (o.name === "beam_Y_fan") {
+        if (o.name === "beam_Y") {
           element = o;
         }
       });
     }
 
-    if (type === "solidRoof") {
+    //LEDS
+    if (type === "leds" || type === "ledsDifSide") {
       model.traverse((o) => {
-        if (o.name === "solid_roof") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "headerLed") {
-      model.traverse((o) => {
-        if (o.name === "header_LED") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "beamXLed") {
-      model.traverse((o) => {
-        if (o.name === "beam_x_LED") {
-          element = o;
-        }
-      });
-    }
-
-    if (type === "beamYLed") {
-      model.traverse((o) => {
-        if (o.name === "beam_Y_LED") {
+        if (o.name === "flushmount_lights") {
           element = o;
         }
       });
@@ -5741,27 +8809,6 @@ export class PergolaObject {
   prepareFrames() {
     const count = 1; // 17;
     this.cloneFrameObject(count);
-  }
-
-  prepareExtraOptions() {
-    const count_fan = 3; // 17;
-    const count_heater = 7;
-    const count_led = 5; // 17;
-    const count_mood = 6; // 18;
-    const count_mood_led = 5; // 17;
-    const count_light = 103; // 320;
-
-    this.cloneExtraOptionObject(PergolaExtraOptionType.heater, count_heater);
-    this.cloneExtraOptionObject(PergolaExtraOptionType.led, count_led);
-    this.cloneExtraOptionObject(PergolaExtraOptionType.moodLight, count_mood);
-    this.cloneExtraOptionObject(PergolaExtraOptionType.moodLed, count_mood_led);
-    this.cloneExtraOptionObject(PergolaExtraOptionType.light, count_light);
-    this.cloneExtraOptionObject(PergolaExtraOptionType.fan, count_fan);
-
-    const fanObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.fan
-    );
-    rotateFans(fanObjects, autoRotateSpeed);
   }
 
   editSystem(span) {
@@ -5813,10 +8860,15 @@ export class PergolaObject {
     return systemType === typeSys;
   }
 
-  getLastActiveSpan(typeSys) {
-    return this.span.objects.filter((span) =>
-      span.systems.find((system) => system.active && system.type === typeSys)
-    );
+  getLastActiveSpan(typeSys, side = false, number = false) {
+    return this.span.objects.filter((span) => {
+      if ((span.number !== number || span.side !== side) && side && number)
+        return false;
+
+      return span.systems.some(
+        (system) => system.active && system.type === typeSys
+      );
+    });
   }
 
   checkSystemInAllSpans(typeSys) {
@@ -5835,29 +8887,14 @@ export class PergolaObject {
   }
 
   getSpanPoints() {
-    const offsetX = -0.15;
-    const offsetZ = -0.15; // зміщення по осі Z для Front/Back
-    const offsetWidth = 0.159;
-    const offsetDepth = 0.315;
+    const offsetX = this.inchesToMeters(-state.overhang);
+    const offsetZ = this.inchesToMeters(-state.overhang);
     const offsetBackZ = 0;
 
     const { FL_point, FR_point, RL_point, RR_point } = this.getCornerPoints(
       offsetX,
       offsetZ
     );
-
-    // const FL_post_point = FL_point.clone().add(
-    //   new THREE.Vector3(0, 0, offsetZ) // Зміщуємо тільки по осі Z для фронту
-    // );
-    // const FR_post_point = FR_point.clone().add(
-    //   new THREE.Vector3(offsetX, 0, 0) // Зміщуємо тільки по осі Z для фронту
-    // );
-    // const RL_post_point = RL_point.clone().add(
-    //   new THREE.Vector3(0, 0, -offsetZ) // Зміщуємо тільки по осі Z для задньої частини
-    // );
-    // const RR_post_point = RR_point.clone().add(
-    //   new THREE.Vector3(offsetX, 0, 0) // Зміщуємо тільки по осі Z для задньої частини
-    // );
 
     const widthInterval = state.postWidthInterval;
     const depthInterval = state.postDepthInterval;
@@ -6262,7 +9299,47 @@ export class PergolaObject {
     return null;
   }
 
+  selectInterval(type = 0) {
+    let intervalWidth = 0;
+    let intervalLength = 0;
+    let maxLouver = 0;
+    let widthLouver = 0;
+
+    switch (type) {
+      case 0:
+        intervalLength = state.roofType === 1 ? 16.5 : 12.5;
+        intervalWidth = state.steel ? 20.5 : !state.beamSize ? 12.5 : 10.5;
+
+        if (state.steel && state.beam) intervalWidth = 24.5;
+
+        maxLouver = 15;
+        widthLouver = 0.266425 / 1.2;
+
+        break;
+
+      default:
+        console.log(`not have type`);
+
+        break;
+    }
+
+    return {
+      intervalWidth,
+      intervalLength,
+      maxLouver,
+      widthLouver,
+    };
+  }
+
+  changeDemisionParams() {
+    const { intervalWidth, intervalLength } = this.selectInterval();
+
+    state.postWidthInterval = intervalWidth;
+    state.postDepthInterval = intervalLength;
+  }
+
   async update() {
+    this.changeDemisionParams();
     this.changeDimensions(state.width, state.length, state.height);
 
     if (
@@ -6272,15 +9349,22 @@ export class PergolaObject {
     }
 
     this.setPosts();
+    this.setRoof();
+    this.makeSolidAndComboRoof();
     this.setRoofBeam();
 
-    this.setLouver();
-    this.setSolidRoof();
-    this.setOptions();
+    //set options
+    if (state.roofType !== 2) {
+      this.setOptions();
+    } else {
+      this.changeExtraOptions();
+    }
 
     this.setSpans();
     this.updateSubsystems();
     this.showAvailableSpans();
+
+    this.extendSystemsNearWall();
 
     WriteURLParameters();
 
@@ -6291,7 +9375,607 @@ export class PergolaObject {
     //this.changeDimensions(8, 8);
   }
 
-  setColor() {}
+  clearOptionElements() {
+    this.changeRoofVisibilityRest(false, "heatersFront", null, true);
+    this.changeRoofVisibilityRest(false, "heatersBack", null, true);
+    this.changeRoofVisibilityRest(false, "fans", null, true);
+    this.changeRoofVisibilityRest(false, "leds", null, true);
+    this.changeRoofVisibilityRest(false, "ledsDifSide", null, true);
+    this.changeRoofVisibilityRest(false, "fansBeam", null, true);
+    this.changeRoofVisibilityRest(false, "fansBeamY", null, true);
+    this.changeRoofVisibility(false, "pointLED", null, true);
+    this.changeRoofVisibility(false, "rampLEDX", null, true);
+    this.changeRoofVisibility(false, "rampLEDY", null, true);
+
+    const fanObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.fan
+    );
+    const lightObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.light
+    );
+    const beamObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.beam
+    );
+    const skylightActiveObjects = this.roof.solid.objects.filter(
+      (item) => item.type == PergolaRoofObjectType.skylight && item.active
+    );
+
+    [fanObjects, lightObjects, beamObjects].forEach((array) => {
+      array.forEach((element) => {
+        if (element.object.isGroup) {
+          for (let index = 0; index < element.object.children.length; index++) {
+            const obj = element.object.children[index];
+            obj.visible = false;
+          }
+          element.object.visible = false;
+          element.active = false;
+        } else {
+          element.object.visible = false;
+          element.active = false;
+        }
+      });
+    });
+  }
+
+  changeExtraOptions() {
+    this.clearOptionElements();
+
+    const fanObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.fan
+    );
+    const lightObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.light
+    );
+    const beamObjects = this.extraOptions.elements.filter(
+      (item) => item.type == PergolaExtraOptionType.beam
+    );
+    const skylightActiveObjects = this.roof.solid.objects.filter(
+      (item) => item.type == PergolaRoofObjectType.skylight && item.active
+    );
+
+    const { FL_point, FR_point, RL_point, FC_point, RC_point } =
+      this.getCornerPointsExtraOptions();
+    const { COMBO_LATTICE_CENTER_point } = this.getComboCenterPoints();
+    const { FL_post_point, FR_post_point } = this.getPostPointsCombo();
+
+    let overhangOffset = this.inchesToMeters(state.overhang);
+
+    let roofPercent = 0.5;
+
+    if (state.roofType !== 2) {
+      roofPercent = 1;
+    }
+
+    let RL_StartPoint =
+      state.roofType == 2 ? RC_point.clone() : RL_point.clone();
+    let FL_StartPoint =
+      state.roofType == 2 ? FC_point.clone() : FL_point.clone();
+    let FR_StartPoint = FR_point.clone();
+
+    if (!state.backWall) {
+      RL_StartPoint = new THREE.Vector3(
+        RL_StartPoint.x,
+        RL_StartPoint.y,
+        RL_StartPoint.z + overhangOffset
+      );
+    }
+
+    FL_StartPoint = new THREE.Vector3(
+      FL_StartPoint.x,
+      FL_StartPoint.y,
+      FL_StartPoint.z - overhangOffset
+    );
+    FR_StartPoint = new THREE.Vector3(
+      FR_StartPoint.x,
+      FR_StartPoint.y,
+      FR_StartPoint.z - overhangOffset
+    );
+
+    let width_points;
+    let length_points;
+
+    let allPointsForLouversZ = [];
+
+    const countPointLight = 1;
+    const { RR_point } = this.getCornerPoints();
+    const { point_post_length } = this.getPostPoints();
+
+    const cornerAndBeamPointZ = [FL_point, ...point_post_length, RR_point];
+
+    for (let i = 0; i < cornerAndBeamPointZ.length - 1; i++) {
+      const spanPoints = generateMidpoints(
+        cornerAndBeamPointZ[i],
+        cornerAndBeamPointZ[i + 1],
+        countPointLight
+      );
+
+      allPointsForLouversZ.push(...spanPoints);
+    }
+
+    // length_points = allPointsForLouversZ;
+
+    //* LIGHTS
+    if (state.electro.has(pergolaConst.optionNameString.LEDRampLight)) {
+      const widthQty =
+        Math.floor((state.width * roofPercent) / state.fanIntervalWidth) + 1;
+      let lengthQty = Math.floor(state.length / state.fanIntervalLength) + 1;
+
+      // if (lengthQty < 2) {
+      //   lengthQty = lengthQty * 2;
+      // }
+
+      // LETTICE
+      if (state.roofType !== 0) {
+        width_points = generateCenterMidpoints(
+          FL_StartPoint,
+          FR_StartPoint,
+          widthQty - 1,
+          true
+        );
+        length_points = generateMidpoints(
+          RL_StartPoint,
+          FL_StartPoint,
+          lengthQty * 4 - 1,
+          true
+        );
+        length_points = length_points.filter((_, index) => index % 2 === 1);
+      } else {
+        width_points = generateMidpoints(
+          FL_StartPoint,
+          FR_StartPoint,
+          widthQty * 4 - 1,
+          true
+        );
+        width_points = width_points.filter((_, index) => index % 2 === 1);
+        // length_points = generateCenterMidpoints(
+        //   RL_StartPoint,
+        //   FL_StartPoint,
+        //   lengthQty - 1,
+        //   true
+        // );
+      }
+
+      if (
+        (state.roofType === 1 && state.skyLight && state.width >= 12) ||
+        (state.roofType === 2 && state.skyLight && state.width >= 12)
+      ) {
+        width_points = getWidthPointsForSkylightRoof(this, roofPercent);
+      }
+      state.width;
+      for (let l = 0; l < length_points.length; l++) {
+        const pL = length_points[l];
+
+        for (let w = 0; w < width_points.length; w++) {
+          const pW = width_points[w];
+
+          const element = this.getAvalibleExtraLightObject(lightObjects);
+
+          element.object.position.x = pW.x;
+          element.object.position.z = pL.z;
+          // element.object.position.y = 2.389 + 0.048;
+
+          // if (state.roofType === PergolaRoofType.Louvered) {
+          //   element.object.position.y = 2.389 + 0.048 - 0.05;
+          // }
+
+          if (element.object.isGroup) {
+            for (let i = 0; i < element.object.children.length; i++) {
+              const obj = element.object.children[i];
+              if (!obj.isPointLight) obj.visible = true;
+              if (obj.isPointLight && sceneTime !== "Day") {
+                obj.visible = true;
+              }
+            }
+            if (!element.object.isPointLight) element.object.visible = true;
+            if (element.object.isPointLight && sceneTime !== "Day") {
+              element.object.visible = true;
+            }
+            element.active = true;
+          } else {
+            if (!element.object.isPointLight) element.object.visible = true;
+            if (element.object.isPointLight && sceneTime !== "Day") {
+              element.object.visible = true;
+            }
+            element.active = true;
+          }
+        }
+      }
+
+      if (state.roofType === 2 && state.width >= 12) {
+        width_points = generateMidpoints(FL_post_point, FC_point, 3, true);
+        width_points = width_points.filter((_, index) => index % 2 === 1);
+        length_points = generateCenterMidpoints(
+          RL_StartPoint,
+          FL_StartPoint,
+          lengthQty - 1,
+          true
+        );
+
+        for (let l = 0; l < length_points.length; l++) {
+          const pL = length_points[l];
+
+          for (let w = 0; w < width_points.length; w++) {
+            const pW = width_points[w];
+
+            const element = this.getAvalibleExtraLightObject(lightObjects);
+
+            element.object.position.x = pW.x;
+            element.object.position.z = pL.z;
+            element.object.position.y = 2.389 + 0.048;
+
+            // if (state.roofType === PergolaRoofType.Louvered) {
+            //   element.object.position.y = 2.389 + 0.048 - 0.05;
+            // }
+
+            if (element.object.isGroup) {
+              for (let i = 0; i < element.object.children.length; i++) {
+                const obj = element.object.children[i];
+                if (!obj.isPointLight) obj.visible = true;
+                if (obj.isPointLight && sceneTime !== "Day") {
+                  obj.visible = true;
+                }
+              }
+              if (!element.object.isPointLight) element.object.visible = true;
+              if (element.object.isPointLight && sceneTime !== "Day") {
+                element.object.visible = true;
+              }
+              element.active = true;
+            } else {
+              if (!element.object.isPointLight) element.object.visible = true;
+              if (element.object.isPointLight && sceneTime !== "Day") {
+                element.object.visible = true;
+              }
+              element.active = true;
+            }
+          }
+        }
+      }
+    }
+
+    //* FANS
+    if (state.electro.has(pergolaConst.optionNameString.fans)) {
+      const fanQtyWidth =
+        Math.floor((state.width * roofPercent) / state.fanIntervalWidth) + 1;
+      let fanQtyLength = Math.floor(state.length / state.fanIntervalLength);
+
+      if (fanQtyLength < 2) {
+        fanQtyLength = fanQtyLength * 2;
+      }
+
+      const offsetY = 0.05;
+
+      let width_points = generateCenterMidpoints(
+        FL_StartPoint,
+        FR_StartPoint,
+        fanQtyWidth - 1,
+        true
+      );
+      const length_points = generateCenterMidpoints(
+        RL_StartPoint,
+        FL_StartPoint,
+        fanQtyLength - 1,
+        true
+      );
+
+      if (
+        (state.roofType === PergolaRoofType.Solid &&
+          state.skyLight &&
+          state.width >= 12) ||
+        (state.roofType === PergolaRoofType.Combo &&
+          state.skyLight &&
+          state.width >= 12)
+      ) {
+        width_points = getWidthPointsForSkylightRoof(this, roofPercent);
+      }
+
+      if (state.roofType === PergolaRoofType.Combo) {
+        const latticeFanPoints = generateMidpoints(
+          FL_post_point,
+          FC_point,
+          1,
+          false
+        );
+        width_points.push(...latticeFanPoints);
+      }
+
+      for (let l = 0; l < length_points.length; l++) {
+        const pL = length_points[l];
+
+        for (let w = 0; w < width_points.length; w++) {
+          const pW = width_points[w];
+          const element = this.getAvalibleExtraLightObject(fanObjects);
+          element.object.position.x = pW.x;
+          element.object.position.z = pL.z;
+          element.object.position.y = 2.389 + offsetY;
+
+          // if (state.roofType === PergolaRoofType.Louvered) {
+          //   element.object.position.y = 2.389 + offsetY - 0.05;
+          // }
+
+          if (element.object.isGroup) {
+            for (let i = 0; i < element.object.children.length; i++) {
+              const obj = element.object.children[i];
+              obj.visible = true;
+            }
+            element.object.visible = true;
+            element.active = true;
+          } else {
+            element.object.visible = true;
+            element.active = true;
+          }
+        }
+      }
+    }
+
+    //* BEAMS
+    if (
+      state.electro.has(pergolaConst.optionNameString.fans) ||
+      state.electro.has(pergolaConst.optionNameString.LEDRampLight)
+    ) {
+      if (state.roofType !== PergolaRoofType.Solid) {
+        let beamQtyLength =
+          Math.floor(state.length / state.fanIntervalLength) + 1;
+
+        // if (beamQtyLength < 2) {
+        //   beamQtyLength = beamQtyLength * 2;
+        // }
+
+        let length_points = generateCenterMidpoints(
+          RL_StartPoint,
+          FL_StartPoint,
+          beamQtyLength - 1,
+          true
+        );
+
+        for (let l = 0; l < length_points.length; l++) {
+          const pL = length_points[l];
+          const element = this.getAvalibleExtraLightObject(beamObjects);
+          if (!element) {
+            break;
+          }
+          element.object.position.x = 0;
+          element.object.position.z = pL.z;
+          // element.object.position.y = 0.05;
+
+          if (state.roofType === PergolaRoofType.Combo) {
+            element.object.position.x =
+              COMBO_LATTICE_CENTER_point.x -
+              0.01 +
+              Math.abs(FL_point.x - FL_post_point.x) / 2;
+          }
+
+          // if (state.roofType === PergolaRoofType.Louvered) {
+          //   element.object.position.y = 0;
+          // }
+
+          if (element.object.isGroup) {
+            for (let i = 0; i < element.object.children.length; i++) {
+              const obj = element.object.children[i];
+              obj.visible = true;
+            }
+            element.object.visible = true;
+            element.active = true;
+          } else {
+            element.object.visible = true;
+            element.active = true;
+          }
+        }
+      }
+    }
+
+    function getWidthPointsForSkylightRoof(obj, roofPercent = 1) {
+      let width_points = [];
+
+      if (state.roofType === PergolaRoofType.Solid) {
+        // 1 skylight
+        if (state.width <= 16) {
+          width_points = generateCenterMidpoints(
+            FL_StartPoint,
+            FR_StartPoint,
+            1,
+            true
+          );
+        }
+
+        // 2 skylights
+        else if (state.width > 16 && state.width < 30) {
+          width_points = skylightActiveObjects.map((obj) =>
+            obj.object.position.clone()
+          );
+          if (width_points[0].x > width_points[1].x) {
+            width_points[0].x -= 32 * 0.0254;
+            width_points[1].x += 32 * 0.0254;
+          } else {
+            width_points[0].x += 32 * 0.0254;
+            width_points[1].x -= 32 * 0.0254;
+          }
+        }
+
+        // 3 skylights
+        else if (state.width >= 30) {
+          const sky_points = skylightActiveObjects.map((obj) =>
+            obj.object.position.clone()
+          );
+          const firstPoint = generateMidpoints(
+            sky_points[0],
+            sky_points[1],
+            1,
+            false
+          );
+          const secondPoint = generateMidpoints(
+            sky_points[1],
+            sky_points[2],
+            1,
+            false
+          );
+
+          width_points = [...firstPoint, ...secondPoint];
+
+          if (state.width >= 37) {
+            if (sky_points[0].x < sky_points[sky_points.length - 1].x) {
+              sky_points[0].x -= 32 * 0.0254;
+              sky_points[sky_points.length - 1].x += 32 * 0.0254;
+            } else {
+              sky_points[0].x += 32 * 0.0254;
+              sky_points[sky_points.length - 1].x -= 32 * 0.0254;
+            }
+
+            width_points.push(sky_points[0]);
+            width_points.push(sky_points[sky_points.length - 1]);
+          }
+        }
+      }
+
+      if (state.roofType === PergolaRoofType.Combo) {
+        // 1 skylight
+        if (state.width >= 12) {
+          width_points = generateCenterMidpoints(
+            FL_StartPoint,
+            FR_StartPoint,
+            1,
+            true
+          );
+        }
+
+        // 2 skylights
+        // else if (state.width * roofPercent > 20) {
+        //   width_points = skylightActiveObjects.map((obj) =>
+        //     obj.object.position.clone()
+        //   );
+
+        //   console.log(width_points);
+
+        //   if (width_points[0].x > width_points[1].x) {
+        //     width_points[0].x -= 32 * 0.0254;
+        //     width_points[1].x += 32 * 0.0254;
+        //   } else {
+        //     width_points[0].x += 32 * 0.0254;
+        //     width_points[1].x -= 32 * 0.0254;
+        //   }
+        // }
+      }
+
+      return width_points;
+    }
+  }
+
+  changeWallMaterials() {
+    const backWall = GetGroup("wall_back");
+    const leftWall = GetGroup("wall_L");
+    const rightWall = GetGroup("wall_R");
+
+    const applyTextures = state.typePergola;
+
+    const wallTextures = TEXTURES.inner.wallCommercial;
+
+    [backWall, leftWall, rightWall].forEach((wall) => {
+      wall.children.forEach((group) => {
+        group.traverse((object) => {
+          if (object.isMesh) {
+            const material = object.material;
+
+            if (!material.userData.originalMap) {
+              material.userData.originalMap = material.map;
+              material.userData.originalNormalMap = material.normalMap;
+              material.userData.originalRoughnessMap = material.roughnessMap;
+            }
+
+            if (applyTextures) {
+              setMaterialTexture(wall, [material.name], wallTextures, 0.4);
+            } else {
+              material.map = material.userData.originalMap;
+              material.normalMap = material.userData.originalNormalMap;
+              material.roughnessMap = material.userData.originalRoughnessMap;
+
+              material.needsUpdate = true;
+            }
+          }
+        });
+      });
+    });
+  }
+
+  setAddOptionWall() {
+    ChangeGlobalMorph("on_roof", 0);
+    const backBeam = GetMesh("back_beam_wall");
+    const backBeamL = GetMesh("beam_wall_L");
+    const backBeamR = GetMesh("beam_wall_L001");
+    backBeam.visible = false;
+    backBeamL.visible = false;
+    backBeamR.visible = false;
+    $("#wall-option").show();
+
+    const backSpanSystem = pergola.span.objects.some(
+      (span) => span.side === pergolaConst.side.Back && span.isSystemSet
+    );
+
+    switch (true) {
+      // freestanding
+      case state.wallOption === 0:
+        $("#back").removeClass("active");
+        $("#left").removeClass("active");
+        $("#right").removeClass("active");
+        $("#wall-option").hide();
+
+        state.backWall = false;
+        state.rightWall = false;
+        state.leftWall = false;
+
+        toggleBackWall(false);
+        toggleRightWall(false);
+        toggleLeftWall(false);
+
+        break;
+
+      // wall-mounted
+      case state.wallOption === 1:
+        if (!backSpanSystem) {
+          $("#back").addClass("active");
+
+          state.backWall = true;
+
+          toggleBackWall(true);
+        }
+
+        break;
+
+      // fascia-mounted
+      case state.wallOption === 2:
+        if (state.backWall) backBeam.visible = true;
+        if (state.leftWall) backBeamL.visible = true;
+        if (state.rightWall) backBeamR.visible = true;
+
+        ChangeGlobalMorph("on_roof", 0.1);
+
+        if (!backSpanSystem) {
+          $("#back").addClass("active");
+
+          state.backWall = true;
+
+          toggleBackWall(true);
+        }
+
+        break;
+
+      // roof-mounted
+      case state.wallOption === 3:
+        if (!backSpanSystem) {
+          $("#back").addClass("active");
+
+          state.backWall = true;
+
+          toggleBackWall(true);
+        }
+
+        ChangeGlobalMorph("on_roof", 0.6);
+
+        break;
+
+      // Cantilever
+      case state.wallOption === 4:
+        break;
+    }
+  }
 
   rgbToHex(rgb) {
     // Перевірка на формат rgb або rgba
@@ -6525,275 +10209,224 @@ export class PergolaObject {
     });
   }
 
-  changeExtraOptions() {
-    const fanObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.fan
-    );
-    const heaterObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.heater
-    );
-    const fanBeams = this.roof.beams.filter((item) => item.isFanBeam === true);
-    const lightObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.light
-    );
-    const ledObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.led
-    );
-    const moodLightObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.moodLight
-    );
-    const moodLedsObjects = this.extraOptions.elements.filter(
-      (item) => item.type == PergolaExtraOptionType.moodLed
-    );
-
-    this.changeObjectArrayVisibility(false, fanObjects);
-    this.changeObjectArrayVisibility(false, heaterObjects);
-    this.changeObjectArrayVisibility(false, fanBeams);
-    this.changeObjectArrayVisibility(false, ledObjects);
-    this.changeObjectArrayVisibility(false, moodLedsObjects);
-    this.changeObjectArrayVisibility(false, lightObjects);
-    this.changeMoodLightsVisibility(false, moodLightObjects);
-
-    const { framesPoints } = this.getFramesPoints();
-
-    //! FANS
-    if (this.settings.extraOptionFan) {
-      const { FL_point, FR_point, RL_point } = this.getCornerPoints();
-      const { mainBeamQty, leftPoints, frontPoints } = this.getFramesPoints();
-      const framesPerGap = (leftPoints.length - 1) / (mainBeamQty + 1);
-      const delta = this.settings.beamThickness / framesPerGap;
-      const frameWidth = frontPoints[0].distanceTo(frontPoints[1]);
-      const frameLength = leftPoints[0].distanceTo(leftPoints[1]) - delta;
-
-      let fanPoints = [];
-      let addBeam = false;
-
-      const horiFrameQty = Math.round(this.totalWidth / frameWidth);
-      const vertFrameQty = Math.round(this.totalLength / frameLength);
-      const vertPoints = generateMidpoints(
-        FL_point,
-        RL_point,
-        vertFrameQty - 1
-      );
-
-      if (horiFrameQty > 1) {
-        if (vertFrameQty >= 2) {
-          const horiPoints = generateCenterMidpoints(
-            FL_point,
-            FR_point,
-            horiFrameQty - 1,
-            true
-          );
-          for (let i = 0; i < vertPoints.length; i++) {
-            for (let j = 0; j < horiPoints.length; j++) {
-              fanPoints.push(
-                new THREE.Vector3(horiPoints[j].x, 0, vertPoints[i].z)
-              );
-            }
-          }
-          addBeam = false;
-        } else {
-          fanPoints.push(new THREE.Vector3(0, 0, 0));
-          addBeam = false;
-        }
-      } else {
-        if (vertFrameQty >= 2) {
-          const horiPoints = generateMidpoints(
-            FL_point,
-            FR_point,
-            horiFrameQty
-          );
-          for (let i = 0; i < vertPoints.length; i++) {
-            for (let j = 0; j < horiPoints.length; j++) {
-              fanPoints.push(
-                new THREE.Vector3(horiPoints[j].x, 0, vertPoints[i].z)
-              );
-            }
-          }
-          addBeam = false;
-        } else {
-          fanPoints.push(new THREE.Vector3(0, 0, 0));
-          addBeam = true;
-        }
+  getAvalibleExtraLightObject(objects) {
+    for (let index = 0; index < objects.length; index++) {
+      const element = objects[index];
+      if (element.active == true) {
+        continue;
       }
+      return element;
+    }
+  }
 
-      for (let index = 0; index < fanPoints.length; index++) {
-        const point = fanPoints[index];
+  extendSystemsNearWall() {
+    const { right_span_points } = this.getSpanPoints();
 
-        const fan = this.getAvaliableObjectFromArray(fanObjects);
-        fan.object.position.x = point.x;
-        fan.object.position.z = point.z;
-        this.changeObjectVisibility(true, fan.object);
-        fan.active = true;
+    if (state.backWall) {
+      const qntySpanLength = right_span_points.length === 1 ? 0 : 1;
 
-        if (addBeam) {
-          const fanBeam = this.getAvaliableObjectFromArray(fanBeams);
-          fanBeam.object.position.x = point.x;
-          fanBeam.object.position.z = point.z;
-          this.changeObjectVisibility(true, fanBeam.object);
-          fanBeam.active = true;
-        }
-      }
+      //SET MORPH
+      this.span.objects
+        .filter((span) => span.number === qntySpanLength)
+        .forEach((span) => {
+          span.systems.forEach((system) => {
+            ChangeObjectMorph(system.object, "+6", 2);
 
-      this.lastSettings.extraOptionLight = this.settings.extraOptionLight;
+            system.object.children.forEach((el) => {
+              ChangeObjectMorph(el, "+6", 2);
+            });
+
+            if (
+              system.side === pergolaConst.side.Right &&
+              system.type === pergolaConst.systemType.privacyWall &&
+              !system.object.rotation.y
+            ) {
+              system.object.rotation.y = Math.PI;
+            }
+          });
+        });
     }
 
-    //! MOOD LIGHTS
-    if (this.settings.extraOptionMoodLight) {
-      if (framesPoints.length === 1) {
-        this.changeMoodLightParameters(
-          moodLightObjects,
-          this.settings.colorMoodHex
-        );
-      } else {
-        for (let index = 0; index < framesPoints.length; index++) {
-          const point = framesPoints[index];
-          const moodLedStrip =
-            this.getAvaliableObjectFromArray(moodLedsObjects);
-          moodLedStrip.object.position.x = point.x;
-          moodLedStrip.object.position.z = point.z;
-          moodLedStrip.object.position.y = 0;
-          this.changeObjectVisibility(true, moodLedStrip.object);
-          moodLedStrip.active = true;
-        }
-      }
-    }
+    const frontSpan = pergola.span.objects.filter(
+      (span) =>
+        span.side === pergolaConst.side.Front &&
+        (span.active || span.isSystemSet)
+    );
+    const backSpan = pergola.span.objects.filter(
+      (span) =>
+        span.side === pergolaConst.side.Back &&
+        (span.active || span.isSystemSet)
+    );
 
-    //! HEATERS
-    if (this.settings.extraOptionHeaters) {
-      const { FL_point, FR_point, RL_point, RR_point } = this.getCornerPoints();
-      const heaterOffset = 0.2;
-      const heaterHight = this.totalHeight - 0.3;
+    if (state.leftWall) {
+      if (frontSpan.length) {
+        frontSpan[0].systems.forEach((system) => {
+          ChangeObjectMorph(system.object, "+12L", 1);
 
-      FL_point.x += heaterOffset;
-      FL_point.y = heaterHight;
-      FL_point.z -= heaterOffset;
-      FR_point.x -= heaterOffset;
-      FR_point.y = heaterHight;
-      FR_point.z -= heaterOffset;
-      RL_point.x += heaterOffset;
-      RL_point.y = heaterHight;
-      RL_point.z += heaterOffset;
-      RR_point.x -= heaterOffset;
-      RR_point.y = heaterHight;
-      RR_point.z += heaterOffset;
-
-      let leftPoints = [];
-      let rightPoints = [];
-      let frontPoints = [];
-      let rearPoints = [];
-
-      if (this.dimensions.length > this.settings.postLengthInterval) {
-        leftPoints = generateMidpoints(FL_point, RL_point, 3, false);
-        rightPoints = generateMidpoints(FR_point, RR_point, 3, false);
-        leftPoints.splice(1, 1);
-        rightPoints.splice(1, 1);
-      } else {
-        leftPoints = generateMidpoints(FL_point, RL_point, 1, false);
-        rightPoints = generateMidpoints(FR_point, RR_point, 1, false);
-      }
-
-      if (this.dimensions.width > this.settings.postWidthInterval) {
-        frontPoints = generateMidpoints(FL_point, FR_point, 3, false);
-        rearPoints = generateMidpoints(RL_point, RR_point, 3, false);
-        frontPoints.splice(1, 1);
-        rearPoints.splice(1, 1);
-      } else {
-        frontPoints = generateMidpoints(FL_point, FR_point, 1, false);
-        rearPoints = generateMidpoints(RL_point, RR_point, 1, false);
-      }
-
-      function setHeaters(points, rotationAngle) {
-        points.forEach((point) => {
-          const heater = this.getAvaliableObjectFromArray(heaterObjects);
-          heater.object.position.set(point.x, point.y, point.z);
-          heater.object.rotation.y = THREE.MathUtils.degToRad(rotationAngle);
-          this.changeObjectVisibility(true, heater.object);
-          heater.active = true;
+          system.object.children.forEach((el) => {
+            ChangeObjectMorph(el, "+12L", 1);
+          });
         });
       }
 
-      setHeaters.call(this, leftPoints, 90);
-      setHeaters.call(this, rightPoints, -90);
-      setHeaters.call(this, frontPoints, 180);
-      setHeaters.call(this, rearPoints, 0);
+      if (backSpan.length) {
+        backSpan[0].systems.forEach((system) => {
+          ChangeObjectMorph(system.object, "+12L", 1);
 
-      // this.lastSettings.extraOptionLight = this.settings.extraOptionLight;
-    }
-
-    //! LED STRIPS
-    if (this.settings.extraOptionLed) {
-      for (let index = 0; index < framesPoints.length; index++) {
-        const point = framesPoints[index];
-        const ledStrip = this.getAvaliableObjectFromArray(ledObjects);
-        // console.log("🚀 ~ ledStrip:", ledStrip);
-        ledStrip.object.position.x = point.x;
-        ledStrip.object.position.z = point.z;
-        this.changeObjectVisibility(true, ledStrip.object);
-        ledStrip.active = true;
+          system.object.children.forEach((el) => {
+            ChangeObjectMorph(el, "+12L", 1);
+          });
+        });
       }
     }
 
-    //! POINTLIGHTS
-    if (this.settings.extraOptionLight) {
-      const minLightQty = this.getPointLightpositions(8).length;
-      const maxLightQty = this.getPointLightpositions(2).length;
+    if (state.rightWall) {
+      if (frontSpan.length) {
+        frontSpan[frontSpan.length - 1].systems.forEach((system) => {
+          ChangeObjectMorph(system.object, "+12R", 1);
 
-      const lightGap = this.settings.extraOptionLightSpacing;
-
-      const lightPoints = this.getPointLightpositions(lightGap);
-      const pointY = 2.185;
-
-      for (let i = 0; i < lightPoints.length; i++) {
-        const element = lightObjects[i];
-        const light = element.object;
-        light.position.set(lightPoints[i].x, pointY, lightPoints[i].z);
-        // light.children[1].material.emissiveIntensity = 3;
-        element.active = true;
-        this.changeObjectVisibility(true, light);
+          system.object.children.forEach((el) => {
+            ChangeObjectMorph(el, "+12R", 1);
+          });
+        });
       }
 
-      this.lastSettings.extraOptionFan = this.settings.extraOptionFan;
+      if (backSpan.length) {
+        backSpan[backSpan.length - 1].systems.forEach((system) => {
+          ChangeObjectMorph(system.object, "+12R", 1);
+
+          system.object.children.forEach((el) => {
+            ChangeObjectMorph(el, "+12R", 1);
+          });
+        });
+      }
     }
+  }
+
+  checkSystemsInScene() {
+    const zipUIinex = 3;
+    const privacyWallUIindex = 2;
+
+    // if (state.subSystem.size) {
+    if (!pergola.checkSystemInAllSpans(pergolaConst.systemType.autoShade)) {
+      hideIcon(pergolaConst.systemType.autoShade);
+      $(".portal-container").hide();
+
+      const subSystems = $("#last-group").find(".option").eq(zipUIinex);
+
+      subSystems.removeClass("type_interface_electronic_item--active");
+
+      state.subSystem.delete(pergolaConst.systemNameString.autoShade);
+
+      subSystems
+        .closest(".interface__group")
+        .find(".interface__group__head__param")
+        .text(`${updateTextParam(state, this, true, true, true)}`);
+
+      state.currentActiveSystems = null;
+    } else {
+      $(".portal-container__close").trigger("click");
+    }
+
+    if (!pergola.checkSystemInAllSpans(pergolaConst.systemType.privacyWall)) {
+      hideIcon(pergolaConst.systemType.privacyWall);
+      $(".portal-container").hide();
+
+      const subSystems = $("#last-group")
+        .find(".option")
+        .eq(privacyWallUIindex);
+
+      subSystems.removeClass("type_interface_electronic_item--active");
+
+      state.subSystem.delete(pergolaConst.systemNameString.privacyWall);
+
+      subSystems
+        .closest(".interface__group")
+        .find(".interface__group__head__param")
+        .text(`${updateTextParam(state, this, true, true, true)}`);
+
+      state.currentActiveSystems = null;
+    } else {
+      $(".portal-container__close").trigger("click");
+    }
+    // }
   }
 
   changeDimensions(width = null, length = null, height = null) {
     const { span_width, span_depth } = this.getSpanPoints();
+    let offsetSide = 0;
     let offset = 0;
+    let offsetNegativeSide = 0;
     let offsetNegative = 0;
 
     switch (height) {
+      case 8:
+        offsetNegativeSide = 0;
+        offsetNegative = 0;
+        offsetSide = 0;
+        offset = state.roofType === 1 && !state.beamSize ? 0 : 0;
+        break;
+
       case 9:
-        offsetNegative = 0.1;
-        offset = 0.14;
+        offsetNegativeSide = 0;
+        offsetNegative = 0;
+        offsetSide = 0.14;
+        offset = state.roofType === 1 && !state.beamSize ? 0.14 : 0.14;
         break;
 
       case 10:
-        offsetNegative = 0.1;
-        offset = 0.28;
+        offsetNegativeSide = 0;
+        offsetNegative = 0;
+
+        offsetSide = 0.27;
+        offset = state.roofType === 1 && !state.beamSize ? 0.28 : 0.28;
+
         break;
 
       case 11:
-        offsetNegative = 0.1;
-        offset = 0.43;
+        offsetNegativeSide = 0;
+        offsetNegative = 0;
+
+        offsetSide = 0.39;
+        offset = state.roofType === 1 && !state.beamSize ? 0.4 : 0.4;
         break;
 
       case 12:
-        offsetNegative = 0.1;
-        offset = 0.57;
+        offsetNegativeSide = 0;
+        offsetNegative = 0;
+
+        offsetSide = 0.52;
+        offset = state.roofType === 1 && !state.beamSize ? 0.58 : 0.59;
+
         break;
     }
+
+    const offsetPrepered = state.directionRoof ? offset * 1.1 : offset;
 
     let openZip = this.interpolateValue(
       +state.zipInput,
       1,
       100,
       0 - offsetNegative,
-      1 + offset
+      1 + offsetPrepered
+    );
+
+    let openZipSide = this.interpolateValue(
+      +state.zipInput,
+      1,
+      100,
+      0 - offsetNegativeSide,
+      1 + offsetSide
     );
 
     const targetValueWidth = ConvertMorphValue(
       width,
+      MORPH_DATA.width.min,
+      MORPH_DATA.width.max
+    );
+
+    const targetValueWidthLattice = ConvertMorphValue(
+      width / 2,
       MORPH_DATA.width.min,
       MORPH_DATA.width.max
     );
@@ -6810,192 +10443,185 @@ export class PergolaObject {
       MORPH_DATA.length.max
     );
 
+    const targetValueFanBeamLenght = ConvertMorphValue(
+      this.getMeters(length) - this.inchesToMeters(state.overhang),
+      this.getMeters(MORPH_DATA.length.min),
+      this.getMeters(MORPH_DATA.length.max)
+    );
+
+    const targetValueFanBeamWidth = ConvertMorphValue(
+      this.getMeters(width) - this.inchesToMeters(state.overhang),
+      this.getMeters(MORPH_DATA.width.min),
+      this.getMeters(MORPH_DATA.width.max)
+    );
+
+    const offsetColumnZip = !state.postType ? 0.1 : 0.1;
+
     const targetValueWidthSystem = ConvertMorphValue(
-      span_width - 0.1,
-      0.879818,
-      4.87655
+      span_width + offsetColumnZip,
+      0.625818,
+      7.31494
     );
 
     const targetValueLengthSystem = ConvertMorphValue(
-      span_depth - 0.1,
-      0.879818,
-      4.87655
+      span_depth + offsetColumnZip,
+      1.23542,
+      6.09575
     );
 
-    const targetValueWidthFrame = ConvertMorphValue(
-      span_width - 0.1,
-      0.879106,
-      4
-    );
+    const offsetColumn = !state.postType ? -0.07 : 0.1;
 
-    const targetValueLengthFrame = ConvertMorphValue(
-      span_depth - 0.1,
-      0.879106,
-      4
-    );
-
-    const targetValueWidthShatters = ConvertMorphValue(
-      span_width - 0.1,
-      0.879106,
-      6
-    );
-
-    const targetValueLengthShatters = ConvertMorphValue(
-      span_depth - 0.1,
-      0.879106,
-      6
-    );
-
-    const targetValueWidthFixSlats = ConvertMorphValue(
-      span_width,
-      0.9144,
+    const targetValueWidthPrivacyWall = ConvertMorphValue(
+      span_width + offsetColumn,
+      0.7112,
       3.6576
     );
 
     const targetValueLengthFixSlats = ConvertMorphValue(
-      span_depth,
-      0.9144,
-      3.6576
+      span_depth - offsetColumn,
+      1.2192,
+      3.5052
     );
 
-    ChangeGlobalMorph("6-8", state.postSize);
+    ChangeGlobalMorph("+6", 0);
+    ChangeGlobalMorph("+12L", 0);
+    ChangeGlobalMorph("+12R", 0);
+
+    // ZIP-SHADE DIR
+    if (state.directionRoof) {
+      ChangeGlobalMorph("R", 1);
+    } else {
+      ChangeGlobalMorph("R", state.beamSize ? 0.5 : 0);
+    }
+
+    let morhWrapKitThickness = 0;
+
+    switch (state.thickness) {
+      case 3:
+        morhWrapKitThickness = 0.8;
+        break;
+      case 4:
+        morhWrapKitThickness = 1.2;
+        break;
+      case 6:
+        morhWrapKitThickness = 1.65;
+        break;
+    }
+
+    ChangeGlobalMorph("8-5", 0);
+    ChangeGlobalMorph("6-8", 1);
+
+    if (state.roofType === 1) {
+      ChangeGlobalMorph("8-5", state.beamSize);
+    }
+
+    // RAIN MORPH
+    let morphForRain = null;
+
+    switch (state.overhang) {
+      case 18:
+        morphForRain = 0;
+        break;
+
+      case 20:
+        morphForRain = 0.18;
+        break;
+
+      case 24:
+        morphForRain = 0.3;
+        break;
+
+      case 27:
+        morphForRain = 0.5;
+        break;
+    }
+
+    // const morhForHalfLattice = "";
+
+    ChangeGlobalMorph("overhang_rain", morphForRain);
+
+    ChangeGlobalMorph("8-5", state.beamSize);
+
+    ChangeGlobalMorph("3-6", morhWrapKitThickness);
+    ChangeGlobalMorph("2x6-3x8", 1);
+
+    ChangeGlobalMorph("close_shades_side", openZipSide);
+    ChangeGlobalMorph("close_shades", openZip);
 
     ChangeGlobalMorph("width", targetValueWidth);
-    ChangeGlobalMorph("width_wall", targetValueWidth);
-    ChangeGlobalMorph("privacy_width", targetValueWidthFixSlats);
-    ChangeGlobalMorph("width_shades", targetValueWidthSystem);
-    ChangeGlobalMorph("width_sl-doors_frame", targetValueWidthFrame);
-    ChangeGlobalMorph("width_bi-doors_frame", targetValueWidthShatters);
-    ChangeGlobalMorph("width_fix_shutters_frame", targetValueWidthFrame);
-    ChangeGlobalMorph("width_sl-shutters_frame", targetValueWidthShatters);
-    ChangeGlobalMorph("width_fix_shutters_frame", targetValueWidthShatters);
-    ChangeGlobalMorph("width_bifold_shutters_frame", targetValueWidthShatters);
+    ChangeGlobalMorph(
+      "width_non_solid",
+      state.roofType === 2 ? targetValueWidthLattice : targetValueWidth // combo condition
+    );
+    ChangeGlobalMorph(
+      "width_wrap",
+      state.roofType === 2 ? targetValueWidthLattice : targetValueWidth // combo condition
+    );
+    ChangeGlobalMorph("width_beam", targetValueWidth);
 
+    ChangeGlobalMorph(
+      "width_beam_2",
+      state.roofType === 2 ? targetValueWidthLattice : targetValueFanBeamWidth // combo condition
+    );
+
+    ChangeGlobalMorph(
+      "lenth_beam_2",
+      targetValueFanBeamLenght // combo condition
+    );
+
+    ChangeGlobalMorph("width_rain", targetValueWidth);
+    ChangeGlobalMorph("width_wall", targetValueWidth);
+    ChangeGlobalMorph("privacy_width", targetValueWidthPrivacyWall);
+    ChangeGlobalMorph("width_shades", targetValueWidthSystem);
+
+    ChangeGlobalMorph("all_roof_length", targetValueLength);
     ChangeGlobalMorph("lenth", targetValueLength);
+    ChangeGlobalMorph("length_wrap", targetValueLength);
+    ChangeGlobalMorph("length_Y", targetValueLength);
+    ChangeGlobalMorph("length_beam", targetValueLength);
+    // ChangeGlobalMorph("length_rain", targetValueLength);
     ChangeGlobalMorph("length_wall", targetValueLength);
     ChangeGlobalMorph("privacy_lenth", targetValueLengthFixSlats);
     ChangeGlobalMorph("length_shades_side", targetValueLengthSystem);
-    ChangeGlobalMorph("length_sl-doors_frame_side", targetValueLengthFrame);
-    ChangeGlobalMorph("length_bi-doors_frame_side", targetValueLengthShatters);
-    ChangeGlobalMorph("length_fix_shutters_frame", targetValueLengthShatters);
-    ChangeGlobalMorph("length_sl-shutters_frame", targetValueLengthShatters);
-    ChangeGlobalMorph(
-      "length_bifold_shutters_frame",
-      targetValueLengthShatters
-    );
 
     ChangeGlobalMorph("height", targetValueHeight);
+    ChangeGlobalMorph("height_wall", targetValueHeight);
+
     ChangeGlobalMorph("height_shades", targetValueHeight);
     ChangeGlobalMorph("height_shades_side", targetValueHeight);
 
-    ChangeGlobalMorph("close_shades_side", openZip);
-    ChangeGlobalMorph("close_shades", openZip);
+    // ChangeGlobalMorph("close_shades_side", openZip);
+    // ChangeGlobalMorph("close_shades", openZip);
 
-    // const inputSlidingShutterInput = $("#sl-open-range_wrap");
+    ChangeGlobalMorph("length_lattice", targetValueLength);
+    ChangeGlobalMorph("lenght", targetValueLength);
+    ChangeGlobalMorph("length_louver", targetValueLength);
+    ChangeGlobalMorph("length", targetValueLength);
+    ChangeGlobalMorph("length_solid", targetValueLength);
+    ChangeGlobalMorph(
+      "length_rafter",
+      state.directionRoof ? 0 : targetValueLength
+    );
+    ChangeGlobalMorph("width_L", state.directionRoof ? targetValueLength : 0);
+    ChangeGlobalMorph("length_L", state.directionRoof ? targetValueWidth : 0);
 
-    // if (inputSlidingShutterInput) {
-    //   inputSlidingShutterInput.trigger("click");
-    //   console.log("trigger slidi input");
-    // }
+    //WIDTH
 
-    // switch (this.settings.postSize) {
-    //   case PergolaPostType._4x4:
-    //     ChangeGlobalMorph('4"-7"', 0);
-    //     break;
-    //   case PergolaPostType._7x7:
-    //     ChangeGlobalMorph('4"-7"', 1);
-    //     break;
-    //   default:
-    //     break;
-    // }
+    ChangeGlobalMorph("width", targetValueWidth);
+    ChangeGlobalMorph("width_beam_wall", targetValueWidth);
+    ChangeGlobalMorph(
+      "width_header",
+      state.directionRoof ? 0 : targetValueWidth
+    );
+    ChangeGlobalMorph("width_louver", targetValueWidth);
+    ChangeGlobalMorph("width_solid", targetValueWidth);
+    ChangeGlobalMorph(
+      "width_lattice",
+      state.roofType === 2 ? targetValueWidthLattice : targetValueWidth
+    );
 
-    // let valueTillingX = 1;
-    // let valueTillingY = 1;
-    // let valueTillingZ = 1;
-
-    // if (height != null) {
-    //   this.dimensions.height = height;
-
-    //   const targetValue = ConvertMorphValue(
-    //     height,
-    //     MORPH_DATA.height.min,
-    //     MORPH_DATA.height.max
-    //   );
-    //   valueTillingY = targetValue;
-    //   this.totalHeight = ConvertMorphValueReverse(
-    //     targetValue,
-    //     MORPH_DATA_SI.height.min,
-    //     MORPH_DATA_SI.height.max,
-    //     0,
-    //     1
-    //   );
-
-    //   ChangeGlobalMorph("height", targetValue);
-
-    //   pergolaSettings.width = width;
-    //   this.lastSettings.width = this.settings.width;
-    // }
-
-    // if (width != null) {
-    //   this.dimensions.width = width;
-
-    //   const targetValue = ConvertMorphValue(
-    //     width,
-    //     MORPH_DATA.width.min,
-    //     MORPH_DATA.width.max
-    //   );
-    //   valueTillingX = targetValue;
-    //   // 0.09 => товщина контурної рами;
-    //   this.totalWidth =
-    //     ConvertMorphValueReverse(
-    //       targetValue,
-    //       MORPH_DATA_SI.width.min,
-    //       MORPH_DATA_SI.width.max,
-    //       0,
-    //       1
-    //     ) - 0.09;
-
-    //   ChangeGlobalMorph("width", targetValue);
-    //   ChangeGlobalMorph("width_wall", targetValue);
-
-    //   pergolaSettings.width = width;
-    //   this.lastSettings.width = this.settings.width;
-    // }
-
-    // if (length != null) {
-    //   this.dimensions.length = length;
-
-    //   const targetValue = ConvertMorphValue(
-    //     length,
-    //     MORPH_DATA.length.min,
-    //     MORPH_DATA.length.max
-    //   );
-    //   valueTillingZ = targetValue;
-    //   // 0.09 => товщина контурної рами;
-    //   this.totalLength =
-    //     ConvertMorphValueReverse(
-    //       targetValue,
-    //       MORPH_DATA_SI.length.min,
-    //       MORPH_DATA_SI.length.max,
-    //       0,
-    //       1
-    //     ) - 0.09;
-
-    //   ChangeGlobalMorph("length", targetValue);
-    //   ChangeGlobalMorph("length_wall", targetValue);
-
-    //   pergolaSettings.length = length;
-    //   this.lastSettings.length = this.settings.length;
-    // }
-
-    // if (length != null && width != null && height != null) {
-    //   this.updateWallTilling(
-    //     height,
-    //     valueTillingX,
-    //     valueTillingY,
-    //     valueTillingZ
-    //   );
-    // }
+    //HEIGHT
+    ChangeGlobalMorph("height", targetValueHeight);
   }
 
   updateWallTilling(height, valueX, valueY, valueZ) {
@@ -7057,7 +10683,7 @@ export class PergolaObject {
     }
 
     if (
-      this.dimensions.width > this.settings.postWidthInterval &&
+      state.width > this.settings.postWidthInterval &&
       this.dimensions.length > this.settings.postLengthInterval
     ) {
       CC_Post.visible = true;
@@ -7138,9 +10764,33 @@ export class PergolaObject {
     }
   }
 
+  prepareExtraOptions() {
+    const count_fan_width = Math.ceil(
+      MORPH_DATA.width.max / state.fanIntervalWidth
+    );
+    const count_fan_length = Math.ceil(
+      MORPH_DATA.length.max / state.fanIntervalLength
+    );
+    const count_fan = count_fan_width * count_fan_length + 1;
+
+    const count_light_width = Math.floor(
+      MORPH_DATA.width.max / state.lightIntervalWidth
+    );
+    const count_light_length = Math.floor(
+      MORPH_DATA.length.max / state.lightIntervalLength
+    );
+    const count_light = count_light_width * count_light_length;
+
+    const count_beam = count_fan_length - 1;
+
+    this.cloneExtraOptionObject(PergolaExtraOptionType.fan, count_fan);
+    this.cloneExtraOptionObject(PergolaExtraOptionType.light, count_light);
+    this.cloneExtraOptionObject(PergolaExtraOptionType.beam, count_beam);
+  }
+
   prepareSystems() {
-    const qtySpansWidth = 3;
-    const qtySpansDepth = 3;
+    const qtySpansWidth = 6;
+    const qtySpansDepth = 2;
 
     //#region FRONT SIDE
     this.cloneSystemObject(
@@ -7220,9 +10870,9 @@ export class PergolaObject {
   prepareSpans() {
     const spanColor = "#06AEEF";
 
-    const qtyLeft = 3;
+    const qtyLeft = 2;
     const qtyRight = qtyLeft;
-    const qtyFront = 3;
+    const qtyFront = 6;
     const qtyBack = qtyFront;
 
     const spanGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -7442,7 +11092,7 @@ export class PergolaObject {
     const FLFR_postPoints = calculatePerimeterPostPoints(
       FL_point,
       FR_point,
-      this.dimensions.width,
+      state.width,
       this.settings.postWidthInterval
     );
     const FRRR_postPoints = this.settings.mountingWall_Right
@@ -7458,7 +11108,7 @@ export class PergolaObject {
       : calculatePerimeterPostPoints(
           RL_point,
           RR_point,
-          this.dimensions.width,
+          state.width,
           this.settings.postWidthInterval
         );
 
@@ -7529,7 +11179,7 @@ export class PergolaObject {
     );
 
     if (
-      this.dimensions.width > this.settings.postWidthInterval &&
+      state.width > this.settings.postWidthInterval &&
       this.dimensions.length > this.settings.postLengthInterval
     ) {
       if (vertCrossPoints.length % 2 === 0) {
@@ -7554,7 +11204,7 @@ export class PergolaObject {
     let horiLightPoints = [];
 
     if (
-      this.dimensions.width > this.settings.postWidthInterval &&
+      state.width > this.settings.postWidthInterval &&
       this.dimensions.length > this.settings.postLengthInterval
     ) {
       if (vertCrossPoints.length % 2 !== 0) {
@@ -7582,6 +11232,49 @@ export class PergolaObject {
     return allLightPoints;
   }
 
+  getCornerPointsExtraOptions() {
+    const offsetX = 0;
+    const offsetZ = 0;
+    const totalWidth = state.width * 0.3048;
+    const totalLength = state.length * 0.3048;
+    const comboSolidPercent = 0.5;
+    const widthLeftRoofPart = totalWidth * (1 - comboSolidPercent);
+
+    const RL_point = new THREE.Vector3(
+      -totalWidth / 2 - offsetX / 2,
+      0,
+      -totalLength / 2 - offsetZ / 2
+    );
+    const FL_point = new THREE.Vector3(
+      -totalWidth / 2 - offsetX / 2,
+      0,
+      totalLength / 2 + offsetZ / 2
+    );
+    const FR_point = new THREE.Vector3(
+      totalWidth / 2 + offsetX / 2,
+      0,
+      totalLength / 2 + offsetZ / 2
+    );
+    const RR_point = new THREE.Vector3(
+      totalWidth / 2 + offsetX / 2,
+      0,
+      -totalLength / 2 - offsetZ / 2
+    );
+
+    const FC_point = new THREE.Vector3(
+      -totalWidth / 2 + widthLeftRoofPart,
+      0,
+      totalLength / 2 + offsetZ / 2
+    );
+    const RC_point = new THREE.Vector3(
+      -totalWidth / 2 + widthLeftRoofPart,
+      0,
+      -totalLength / 2 - offsetZ / 2
+    );
+
+    return { FL_point, FR_point, RL_point, RR_point, FC_point, RC_point };
+  }
+
   getCornerPoints(xOffset = 0, zOffset = 0) {
     const offsetX = xOffset;
     const offsetZ = zOffset;
@@ -7591,6 +11284,7 @@ export class PergolaObject {
     const lineZback = -totalDepth / 2;
     const lineZfront = totalDepth / 2;
 
+    // Основні точки
     let FL_point = new THREE.Vector3(
       -totalWidth / 2 - offsetX / 2,
       0,
@@ -7612,7 +11306,21 @@ export class PergolaObject {
       lineZback - offsetZ / 2
     );
 
-    return { FL_point, FR_point, RL_point, RR_point };
+    const comboSolidPercent =
+      this.settings.roofComboSolidPercentage ===
+      PergolaRoofPercentage._70percent
+        ? 0.7
+        : 0.5;
+
+    const widthLeftRoofPart = totalWidth * (1 - comboSolidPercent);
+
+    const FC_point = new THREE.Vector3(
+      -totalWidth / 2 + widthLeftRoofPart,
+      0,
+      lineZfront + offsetZ / 2
+    );
+
+    return { FL_point, FR_point, RL_point, RR_point, FC_point };
   }
 
   getFramesPoints() {
@@ -8285,17 +11993,42 @@ class PergolaDimensions {
 // Клас для постів перголи
 class PergolaPost {
   constructor() {
-    this.postFR = null;
-    this.postFL = null;
-    this.postBL = null;
-    this.postBR = null;
+    this.post3x3 = [];
+    this.post3x3Left = [];
+    this.post3x3Right = [];
+    this.post3x3Back = [];
+    this.post3x3Front = [];
 
-    this.leftCenter = [];
-    this.rightCenter = [];
-    this.backCenter = [];
-    this.frontCenter = [];
+    this.postSquare = [];
+    this.postSquareLeft = [];
+    this.postSquareRight = [];
+    this.postSquareBack = [];
+    this.postSquareFront = [];
 
-    this.centerCenter = [];
+    this.postRound = [];
+    this.postRoundLeft = [];
+    this.postRoundRight = [];
+    this.postRoundBack = [];
+    this.postRoundFront = [];
+
+    this.postHeadsOne = [];
+    this.postHeadsOneLeft = [];
+    this.postHeadsOneRight = [];
+    this.postHeadsOneBack = [];
+    this.postHeadsOneFront = [];
+
+    this.postHeadsTwo = [];
+    this.postHeadsTwoLeft = [];
+    this.postHeadsTwoRight = [];
+    this.postHeadsTwoBack = [];
+    this.postHeadsTwoFront = [];
+
+    //RAIN
+    this.rainFront = [];
+    this.rainBack = [];
+
+    this.rainCornerFront = [];
+    this.rainCornerBack = [];
   }
 }
 
@@ -8412,20 +12145,105 @@ class PergolaSystemObject {
 // Клас для даху
 class PergolaRoof {
   constructor() {
-    this.name = "";
-    this.beamX = [];
-    this.beamY = [];
-    this.louverY = [];
-    this.louverX = [];
+    this.open = 0;
+    //HEAD FOR BACK WALL
+    this.headerBackWall = [];
+
+    //HEADER
+    this.headBevelSingle = [];
+    this.headBevelDouble = [];
+
+    this.headMiterSingle = [];
+    this.headMiterDouble = [];
+
+    this.headCorbelSingle = [];
+    this.headCorbelDouble = [];
+
+    this.headScallopSingle = [];
+    this.headScallopDouble = [];
+
+    // RAFTER
+    this.rafterBevelSingle = [];
+    this.rafterBevelDouble = [];
+
+    this.rafterBevelSingleCut = [];
+    this.rafterBevelDoubleCut = [];
+
+    this.rafterBevelSingleShot = [];
+    this.rafterBevelDoubleShot = [];
+    this.rafterBevelSingleShotBack = [];
+    this.rafterBevelDoubleShotBack = [];
+
+    this.rafterMiterSingle = [];
+    this.rafterMiterDouble = [];
+
+    this.rafterMiterSingleCut = [];
+    this.rafterMiterDoubleCut = [];
+
+    this.rafterMiterSingleShot = [];
+    this.rafterMiterDoubleShot = [];
+    this.rafterMiterSingleShotBack = [];
+    this.rafterMiterDoubleShotBack = [];
+
+    this.rafterCorbelSingle = [];
+    this.rafterCorbelDouble = [];
+
+    this.rafterCorbelSingleCut = [];
+    this.rafterCorbelDoubleCut = [];
+
+    this.rafterCorbelSingleShot = [];
+    this.rafterCorbelDoubleShot = [];
+    this.rafterCorbelSingleShotBack = [];
+    this.rafterCorbelDoubleShotBack = [];
+
+    this.rafterScallopSingle = [];
+    this.rafterScallopDouble = [];
+
+    this.rafterScallopSingleCut = [];
+    this.rafterScallopDoubleCut = [];
+
+    this.rafterScallopSingleShot = [];
+    this.rafterScallopDoubleShot = [];
+    this.rafterScallopSingleShotBack = [];
+    this.rafterScallopDoubleShotBack = [];
+
+    // LATTICE
+    this.lattice2x2X = [];
+    this.lattice3x3X = [];
+
+    this.lattice2x2Y = [];
+    this.lattice3x3Y = [];
+
+    // SOLID
+    this.solidFrame = [];
     this.solidRoof = [];
 
-    this.pointLED = [];
-    this.rampLEDX = [];
-    this.rampLEDY = [];
+    //LOUVER
+    this.louverFrame = [];
+    this.louverX = [];
+    this.louverY = [];
 
-    this.headerLed = [];
-    this.beamXLed = [];
-    this.beamYLed = [];
+    this.louverBeamX = [];
+    this.louverBeamY = [];
+
+    // RAIN Shield
+    this.rainShield = [];
+
+    // Fan Beam
+    this.fanBeam = [];
+
+    // Solid
+    this.solid = null;
+  }
+}
+
+class PergolaRoofTypeSolid {
+  constructor() {
+    this.frames = [];
+    this.objects = [];
+    this.color = new PergolaColorElement();
+    this.wrapkit = null;
+    this.makeRoofOverhang = null;
   }
 }
 
@@ -8457,8 +12275,23 @@ class PergolaRoofBeam {
 }
 
 const PergolaRoofType = {
-  Louvered: 0,
+  Lattice: 0,
+  Solid: 1,
+  Combo: 2,
 };
+
+class PergolaRoofTypeSolidObject {
+  constructor() {
+    this.name = "";
+    this.type = null;
+    this.planks = null;
+    this.plank8inch = false;
+    this.side = null;
+    this.object = null;
+    this.active = false;
+    this.direction = null;
+  }
+}
 
 // Типи даху
 class PergolaRoofTypeLouvered {
@@ -8518,10 +12351,7 @@ class PergolaExtraOptionElement {
 const PergolaExtraOptionType = {
   light: 0,
   fan: 1,
-  heater: 2,
-  led: 3,
-  moodLight: 4,
-  moodLed: 5,
+  beam: 2,
 };
 
 var pergolaSettings = new PergolaSettings();
@@ -9478,7 +13308,7 @@ function changeDimmensionRender(status, lookAtCamera = null, stage) {
   var pos_height_textPosition = new THREE.Vector3(
     pos_height_center[0].x + 0.1,
     pos_height_center[0].y,
-    pos_height_center[0].z
+    pos_height_center[0].z + 0.2
   );
 
   AddDimmension(
@@ -9671,7 +13501,7 @@ export async function CreateImageList() {
 
   const dist = (sizeValue / 40) * 10 + deltaDist;
 
-  console.log(canvas);
+  // console.log(canvas);
   const cameraImageViews_Global = [
     {
       id: "view_1.png",

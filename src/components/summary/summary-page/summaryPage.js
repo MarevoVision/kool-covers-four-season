@@ -1,65 +1,56 @@
 import $ from "jquery";
 import {
-  GetGroup,
-  modelForExport,
   pergolaConst,
   theModel,
   toggleLoad,
 } from "../../../core/3d-configurator";
-import { createPDF } from "../../../core/customFunctions/createPDF";
 import { state } from "../../../core/settings";
-import "./summaryPage.scss";
-import { loadFormData } from "./summary-page-portal/summaryPagePortal";
 import {
-  stringPostSize,
+  stringEndCuts,
+  stringPostType,
   stringRoofType,
   stringTypeModel,
 } from "../../Interface/interface";
 import {
   stringNameFrameColor,
-  stringNameRoofColor,
+  stringNameRoofLetticeColor,
+  stringNameRoofSolidColor,
+  wallAddOptionString,
 } from "../../Interface/interfaceItems/interfaceGroup/interfaceGroupInputs/interfaceGroupInputs";
+import { loadFormData } from "./summary-page-portal/summaryPagePortal";
+import "./summaryPage.scss";
 export let countLeds = {
   count: 0,
 };
 
-function countVisibleObjectsByName(scene, name, exactMatch = false) {
+export function countVisibleObjectsByName(
+  scene,
+  name,
+  exactMatch = false,
+  checkChildrenVisible = false
+) {
   let count = 0;
 
   scene.traverse((object) => {
-    if (!object.visible) return;
-
     const isMatch = exactMatch
       ? object.name === name
       : object.name.includes(name);
 
-    if (isMatch) {
-      count++;
+    const isTargetType = object.isMesh || object.type === "Group";
+
+    if (!isMatch || !isTargetType || !object.visible) return;
+
+    if (checkChildrenVisible && object.children.length > 0) {
+      const allChildrenVisible = object.children.every(
+        (child) => child.visible
+      );
+      if (!allChildrenVisible) return;
     }
+
+    count++;
   });
 
   return count;
-}
-
-function countVisibleMeshes(model, nameGroup) {
-  let visibleCount = 0;
-
-  model.traverse((object) => {
-    console.log(object.name);
-
-    if (nameGroup === "fan" && object.name === nameGroup && object.visible) {
-      visibleCount++;
-    } else if (
-      object.name &&
-      object.name.includes(nameGroup) &&
-      object.visible &&
-      nameGroup !== "fan"
-    ) {
-      visibleCount++;
-    }
-  });
-
-  return visibleCount;
 }
 
 export function summaryPageComponent(container) {
@@ -71,76 +62,30 @@ export function summaryPageComponent(container) {
       state.rightWall && "Right Wall",
     ]
       .filter(Boolean)
-      .join(", ") || "Freestanding";
+      .join(", ") || `${wallAddOptionString[state.wallOption]}`;
 
-  // const roof = state.model ? state.moodLight : "Louvered";
   const roofType = stringRoofType[state.roofType];
-  const postSize = stringPostSize[state.postSize];
-  // const postSize = state.initValuePostSize.includes("6")
-  //   ? `6' x 6'`
-  //   : state.initValuePostSize.includes("8")
-  //   ? `8' x 8'`
-  //   : `4' x 4'`;
+  const postType = stringPostType[state.postType];
+  const postSize = `${state.postSize}' x ${state.postSize}'`;
+  const endCuts = `${stringEndCuts[state.endCuts - 1]}`;
+
   const frameColor = state.colorBody;
   const roofColor = state.colorRoof;
 
   const ledLight = state.ledLights ? `${countLeds.count}` : "No";
   const brightness =
     state.colorLed === "#FAFFC4" ? "3500 lumens" : "2500 lumens";
-  const frequency = `Every ${state.recessedLighting} louvers`;
+  const frequency = `Every ${state.spacing} louvers`;
   const fans = state.fans ? `Yes` : "No";
   const heaters = state.heaters ? `Yes` : "No";
 
-  const motorized = state.subSystem.has(pergolaConst.systemNameString.zip_shade)
-    ? `Yes`
-    : "No";
-  const colorZip = state.subSystem.has(pergolaConst.systemNameString.zip_shade)
-    ? `${state.colorZip}`
-    : "No";
+  // const isTexture =
+  //   typeof state.colorBody === "string" &&
+  //   /\.(jpe?g|png|webp)$/i.test(state.colorBody);
 
-  const transparency = state.subSystem.has(
-    pergolaConst.systemNameString.zip_shade
-  )
-    ? `${state.transparency}%`
-    : "No";
-  const slidingGlassDoor = state.subSystem.has(
-    pergolaConst.systemNameString.sliding_doors
-  )
-    ? `Yes`
-    : "No";
-  const bifoldingGlassDoor = state.subSystem.has(
-    pergolaConst.systemNameString.bifold_doors
-  )
-    ? `Yes`
-    : "No";
-  const fixedShutters = state.subSystem.has(
-    pergolaConst.systemNameString.fix_shutters
-  )
-    ? `Yes`
-    : "No";
-  const slidingShutters = state.subSystem.has(
-    pergolaConst.systemNameString.sliding_shutters
-  )
-    ? `Yes`
-    : "No";
-  const biFoldingShutters = state.subSystem.has(
-    pergolaConst.systemNameString.bifold_shutters
-  )
-    ? `Yes`
-    : "No";
-  const fixedSlats = state.subSystem.has(
-    pergolaConst.systemNameString.fix_shutters
-  )
-    ? `Yes`
-    : "No";
-
-  const isTexture =
-    typeof state.colorRoof === "string" &&
-    /\.(jpe?g|png|webp)$/i.test(state.colorRoof);
-
-  const style = isTexture
-    ? `background-image: url('${state.colorRoof}'); background-size: cover; background-position: center;`
-    : `background-color: ${state.colorRoof};`;
+  const styleFrame = `background-color: ${state.colorBody}; background-size: cover; background-position: center;`;
+  const styleRoofLettice = `background-color: ${state.colorRoof}; background-size: cover; background-position: center;`;
+  const styleRoofSolid = `background-color: ${state.colorRoofSolid}; background-size: cover; background-position: center;`;
 
   const summaryContent = $(`
     <div id="summary-content">
@@ -178,7 +123,169 @@ export function summaryPageComponent(container) {
           <h3 class="sum__page__main-list__info__title">Type</h3>
           <div class="sum__page__main-list__info__param">${roofType}</div>
         </div>
-      </li>
+        
+        
+        ${
+          // LATTICE SETTINGS FROM POP-UP
+          state.roofType === 0
+            ? `
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Spacing</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.spacing
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Thickness</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.thickness ? `2"x2"` : `3"x3"`
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Rafter</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.rafter ? "Single" : "Double"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Direction</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.directionRoof ? "Perpendicular" : "Horizontal"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.overhang
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Rain Shield</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.rain ? "Yes" : "No"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Remove Lattice</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.removeLettice ? "Yes" : "No"
+             }</div>
+           </div>
+          `
+            : ""
+        } 
+
+        ${
+          // SOLID SETTINGS FROM POP-UP
+          state.roofType === 1
+            ? `
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Thickness</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.thickness
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Rafter</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.rafter ? "Single" : "Double"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Beam Size</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.beamSize ? `3x8"` : `3x5"`
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Gutter</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.gutter ? "Scupper" : "Down Spout"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.overhang
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Pergola Wrap Kit</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.wrapKit ? "Yes" : "No"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Skylight</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.skyLight ? "Yes" : "No"
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Tails</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.tails ? "Yes" : "No"
+             }</div>
+           </div>
+          `
+            : ""
+        } 
+
+        ${
+          // COMBO SETTINGS FROM POP-UP
+          state.roofType === 2
+            ? `
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Beam Size</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.beamSize ? `3x8"` : `3x5"`
+             }</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Thickness</h3>
+             <div class="sum__page__main-list__info__param">${
+               !state.thickness ? `2"x2"` : `3"x3"`
+             }</div>
+           </div>
+        
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Spacing</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.spacing
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.overhang
+             }"</div>
+           </div>
+
+           <div class="sum__page__main-list__info"> 
+             <h3 class="sum__page__main-list__info__title">Skylight</h3>
+             <div class="sum__page__main-list__info__param">${
+               state.skyLight ? "Yes" : "No"
+             }</div>
+           </div>
+          `
+            : ""
+        } 
+    </li>
 
     <li class="sum__page__main-list__item">
         <p class="sum__page__main-list__title">Dimensions</p>
@@ -202,9 +309,27 @@ export function summaryPageComponent(container) {
       <li class="sum__page__main-list__item">
         <p class="sum__page__main-list__title">Post size</p>
 
-        <div class="sum__page__main-list__info"> 
+       ${
+         state.postType
+           ? `<div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Size</h3>
           <div class="sum__page__main-list__info__param">${postSize}</div>
+        </div>`
+           : ""
+       } 
+
+        <div class="sum__page__main-list__info"> 
+          <h3 class="sum__page__main-list__info__title">Type post</h3>
+          <div class="sum__page__main-list__info__param">${postType}</div>
+        </div>
+      </li>
+
+      <li class="sum__page__main-list__item">
+        <p class="sum__page__main-list__title">End cuts</p>
+
+        <div class="sum__page__main-list__info"> 
+          <h3 class="sum__page__main-list__info__title">Size</h3>
+          <div class="sum__page__main-list__info__param">${endCuts}</div>
         </div>
       </li>
 
@@ -212,9 +337,7 @@ export function summaryPageComponent(container) {
         <p class="sum__page__main-list__title">Frame color</p>
 
         <div class="sum__page__main-list__info"> 
-          <div class="sum__page__main-list__info__color" style="background-color: ${
-            state.colorBody
-          }"></div>
+          <div class="sum__page__main-list__info__color" style="${styleFrame}"></div>
           <div class="sum__page__main-list__info__param">${stringNameFrameColor}</div>
         </div>
       </li>
@@ -222,10 +345,34 @@ export function summaryPageComponent(container) {
       <li class="sum__page__main-list__item">
         <p class="sum__page__main-list__title">Roof color</p>
 
-        <div class="sum__page__main-list__info"> 
-          <div class="sum__page__main-list__info__color" style="${style}"></div>
-          <div class="sum__page__main-list__info__param">${stringNameRoofColor}</div>
-        </div>
+       ${
+         state.roofType === 0 || state.roofType === 2
+           ? `<div class="sum__page__main-list__info">
+             <div
+               class="sum__page__main-list__info__color"
+               style="${styleRoofLettice}"
+             ></div>
+             <div class="sum__page__main-list__info__param">
+               ${stringNameRoofLetticeColor}
+             </div>
+           </div>`
+           : ""
+       } 
+        
+       ${
+         state.roofType === 1 || state.roofType === 2
+           ? `<div class="sum__page__main-list__info">
+             <div
+               class="sum__page__main-list__info__color"
+               style="${styleRoofSolid}"
+             ></div>
+             <div class="sum__page__main-list__info__param">
+               ${stringNameRoofSolidColor}
+             </div>
+           </div>`
+           : ""
+       }
+        
       </li>
 
       <li class="sum__page__main-list__item">
@@ -234,50 +381,43 @@ export function summaryPageComponent(container) {
         <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">LED Ramp Light</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(theModel, "LED_ramp", true) +
-              countVisibleObjectsByName(theModel, "LED_ramp_Y", true) || "No"
+            state.electro.has(pergolaConst.optionNameString.LEDRampLight)
+              ? "Yes"
+              : "No"
           }</div>
         </div>
 
         <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Fan</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(theModel, "fan", true) - 1 || "No"
+            countVisibleObjectsByName(model, "fan", true) || "No"
           }</div>
         </div>
 
-        <div class="sum__page__main-list__info"> 
+         <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Privacy Wall</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(theModel, "privacy_wall_frame", true) +
+            countVisibleObjectsByName(model, "privacy_wall_frame", true) +
               countVisibleObjectsByName(
-                theModel,
+                model,
                 "privacy_wall_frame_side",
                 true
               ) || "No"
           }</div>
         </div>
 
-        <div class="sum__page__main-list__info"> 
-          <h3 class="sum__page__main-list__info__title">LED Recessed</h3>
-          <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(theModel, "point-light", true) - 1 || "No"
-          }</div>
-        </div>
-
-        <div class="sum__page__main-list__info"> 
-          <h3 class="sum__page__main-list__info__title">LED Strip</h3>
-          <div class="sum__page__main-list__info__param">${
-            state.electro.has(pergolaConst.optionNameString.LEDStrip) ? "Yes" : "No"
-          }</div>
-        </div>
-
-        <div class="sum__page__main-list__info"> 
+    <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Automated Screens</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(theModel, "zip_shade", true) +
-              countVisibleObjectsByName(theModel, "zip_shade_side", true) -
-              2 || "No"
+            state.subSystem.has(pergolaConst.systemNameString.autoShade)
+              ? countVisibleObjectsByName(theModel, "zip_shade", true, true) +
+                countVisibleObjectsByName(
+                  theModel,
+                  "zip_shade_side",
+                  true,
+                  true
+                )
+              : "No"
           }</div>
         </div>
       </li>

@@ -40,13 +40,22 @@ export const stringTypePegola = {
 };
 
 export const stringRoofType = {
-  0: "R-SHADE™",
-  1: "R-BLADE™",
+  0: "Lattice",
+  1: "Solid",
+  2: "Combo",
 };
 
-export const stringPostSize = {
-  0: `6.5&quot x 6.5&quot`,
-  1: `8&quot x 8&quot`,
+export const stringPostType = {
+  0: "Standard",
+  1: "Square Column",
+  2: "Round Column",
+};
+
+export const stringEndCuts = {
+  0: "Bevel",
+  1: "Mitre",
+  2: "Corbel",
+  3: "Scallop",
 };
 
 export const stringColorType = {
@@ -90,8 +99,8 @@ export const groups = [
     ranges: [
       {
         title: capitalize(typesDirection.width),
-        labelMin: `4'`,
-        labelMax: `60'`,
+        labelMin: `${MORPH_DATA.width.min}'`,
+        labelMax: `${MORPH_DATA.width.max}'`,
         min: MORPH_DATA.width.min,
         max: MORPH_DATA.width.max,
         step: 1,
@@ -103,8 +112,8 @@ export const groups = [
       },
       {
         title: capitalize(typesDirection.length),
-        labelMin: `4'`,
-        labelMax: `60'`,
+        labelMin: `${MORPH_DATA.length.min}'`,
+        labelMax: `${MORPH_DATA.length.max}'`,
         min: MORPH_DATA.length.min,
         max: MORPH_DATA.length.max,
         step: 1,
@@ -130,9 +139,15 @@ export const groups = [
     ],
   },
   {
-    title: "Post Size",
-    param: stringPostSize[state.postSize],
+    title: "Posts",
+    param: stringPostType[state.postSize],
     type: typesInputs.postSize,
+    initValuePostSize: state.postSize,
+  },
+  {
+    title: "End Cut",
+    param: stringPostType[state.postSize],
+    type: typesInputs.endCuts,
     initValuePostSize: state.postSize,
   },
   {

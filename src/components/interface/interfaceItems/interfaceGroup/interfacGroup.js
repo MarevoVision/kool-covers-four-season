@@ -33,11 +33,42 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
       arrowIcon.addClass("interface__group__head__param-rotated");
     }
   });
-  
+
   //HIDE GROUP IF NEEDED
-  // if (title === "Roof Type") {
-  //   componentContent.hide();
-  // }
+  if (title === "Dimensions") {
+    console.log("DIM");
+
+    setTimeout(() => {
+      componentContent.find(".interface__group__inputs").append(`
+        <div class="select-inputs">
+               <div class="type_interface_checkbox-wall_item option" id="steel"> 
+                  <div class="type_interface_checkbox-wall_bottom">
+                    <input class="type_interface_checkbox-wall_option" type="checkbox">
+                    <label for="back">Steel Inserts</label>
+                  </div> 
+                </div>
+              </div>
+             </div>
+        `);
+
+      const activeClass = "active";
+
+      //INIT STEEL HEADER
+      componentContent.find("#steel").each(function () {
+        if (state.steel) {
+          $(this).addClass(activeClass);
+        }
+      });
+
+      //HANDLE STEEL HEADER
+      componentContent.find("#steel").on("click", function () {
+        $(this).toggleClass(activeClass);
+        state.steel = !state.steel;
+
+        pergola.update();
+      });
+    }, 500);
+  }
 
   // //INIT ROOF GROUP
   // if (

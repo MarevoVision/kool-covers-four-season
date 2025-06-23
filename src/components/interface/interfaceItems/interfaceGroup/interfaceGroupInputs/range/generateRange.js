@@ -2,18 +2,11 @@ import $ from "jquery";
 import {
   ChangeGlobalMorph,
   ConvertMorphValue,
-  modelForExport,
   pergola,
 } from "../../../../../../core/3d-configurator";
-import {
-  cloneLouverFirst,
-  cloneLouverSecond,
-  cloneLouverThird,
-  cloneStorage,
-} from "../../../../../../core/customFunctions/customFunctions";
 import { MORPH_DATA, state } from "../../../../../../core/settings";
-import "./generateRange.scss";
 import { lightRange, shadesRange } from "../../../../../portal/rangeArrays";
+import "./generateRange.scss";
 
 export function capitalize(str) {
   if (str && str.length > 0) {
@@ -158,16 +151,17 @@ export function generateRangeHTML(range) {
     }
 
     //calc thumb value position
-    const borderForHide = 4;
+    const borderForHide = 2;
+    const borderForHideMax = 4;
 
     if (range.thumb) {
       if (
         (value >= min &&
           value <= min + borderForHide &&
           max - min > borderForHide * 2) ||
-        (value >= max - borderForHide &&
+        (value >= max - borderForHideMax &&
           value <= max &&
-          max - min > borderForHide * 2)
+          max - min > borderForHideMax * 2)
       ) {
         $rangeThumbValue.hide();
       } else {
@@ -281,7 +275,7 @@ export function generateRangeHTML(range) {
   //HANDLE Spacing LIGHT
   if (range.title === lightRange[0].title) {
     $rangeInputId.on("input", function (event) {
-      state.recessedLighting = event.target.value;
+      state.spacing = event.target.value;
       pergola.update();
     });
   }
@@ -300,27 +294,93 @@ export function generateRangeHTML(range) {
   //CHANGE WIDTH
   if (range.title === capitalize(typesDirection.width)) {
     //INIT WIDTH
-    // changeMorph(typesDirection.width, state.width, range);
+    setTimeout(() => {
+      // #region ROOF TYPE LOGIC
+      if (state.width < 15) {
+        if (state.roofType === 2) {
+          state.roofType = 1;
+          $("#solid-roof input").trigger("click");
+        }
+
+        $("#combo-roof").removeClass("active");
+        $("#combo-roof").addClass("disable");
+      } else {
+        $("#combo-roof").removeClass("disable");
+      }
+      // #endregion
+    }, 0);
 
     //HANDLE WIDTH
     $rangeInputId.on("input", async function (event) {
       state.width = +event.target.value;
 
-      // await changeMorph(typesDirection.width, event.target.value, range);
+      // #region ROOF TYPE LOGIC
+      if (state.width < 15) {
+        if (state.roofType === 2) {
+          state.roofType = 1;
+          $("#solid-roof input").trigger("click");
+        }
+
+        $("#combo-roof").removeClass("active");
+        $("#combo-roof").addClass("disable");
+      } else {
+        $("#combo-roof").removeClass("disable");
+      }
+      // #endregion
+
+      //#region SKY LIGHT LOGIC
+      if (state.width < 10) {
+        state.skyLight = false;
+
+        $("#skylight").removeClass("active");
+        $("#skylight").addClass("disable");
+      } else {
+        $("#skylight").removeClass("disable");
+      }
+      // #endregion
+
       pergola.update();
     });
   }
 
   //CHANGE LENGHT
   if (range.title === capitalize(typesDirection.length)) {
-    //INIT LENGHT
-    // changeMorph(typesDirection.length, state.length, range);
-
     //HANDLE LENGHT
     $rangeInputId.on("input", async function (event) {
       state.length = +event.target.value;
 
-      // await changeMorph(typesDirection.length, event.target.value, range);
+      if (state.roofType === 1) {
+        $("#thickness .radio__container__item ").each(function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          $input.removeClass("disable");
+          $input.removeClass("active");
+
+          //LOGIC FOR SOLID
+          switch (true) {
+            case id === 3 && state.length > 16 && state.length <= 20:
+              $input.addClass("disable");
+              $input.removeClass("active");
+
+              state.thickness = state.thickness === 3 ? 4 : state.thickness;
+              break;
+
+            case id === 3 && 20 < state.length:
+            case id === 4 && 20 < state.length:
+              $input.addClass("disable");
+              $input.removeClass("active");
+
+              state.thickness = 6;
+              break;
+          }
+
+          if (id === state.thickness) {
+            $input.addClass("active");
+          }
+        });
+      }
+
       pergola.update();
     });
   }
@@ -342,35 +402,8 @@ export function generateRangeHTML(range) {
       // );
 
       pergola.update();
-
     });
   }
 
   return $customRange;
 }
-
-// export function applyRotationToClones(inputValue) {
-//   const valueInDegrees = parseFloat(inputValue);
-//   state.currentRotationZ = valueInDegrees;
-
-//   const rotationInRadians = (valueInDegrees * Math.PI) / 180;
-
-//   const cloneArrays = [cloneLouverFirst, cloneLouverSecond, cloneLouverThird];
-//   const rotateValue = rotationInRadians;
-
-//   cloneArrays.forEach((cloneArray, index) => {
-//     if (cloneArray.length > 0) {
-//       cloneArray.forEach((clone) => {
-//         if (state.isRotated) {
-//           cloneStorage.louver[index].rotation.z = rotateValue;
-
-//           clone.rotation.z = (valueInDegrees * Math.PI) / 180 + 3.1;
-//         } else {
-//           cloneStorage.louver[index].rotation.z = rotateValue;
-
-//           clone.rotation.z = rotateValue;
-//         }
-//       });
-//     }
-//   });
-// }

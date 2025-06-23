@@ -103,7 +103,6 @@ export function updateBloomSettings(
 }
 
 import { TONE_MAPPING_EXPOSURE } from "./settings.js";
-import { initRaycast } from "./raycast.js";
 import { currentOS, hotspots, updateHotspots } from "./3d-configurator.js";
 
 export let dirLight;
@@ -358,7 +357,7 @@ export function create3DScene(
       dirLight.shadow.blurSamples = 10;
       break;
     case "iOS":
-      dirLight.shadow.mapSize = new THREE.Vector2(2048, 2048);
+      dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
       // dirLight.shadow.radius = 2;
       dirLight.shadow.blurSamples = 10;
       break;

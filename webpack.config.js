@@ -33,7 +33,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./src/index.html",
-      inject: "body", // Інжектимо скрипти в кінець тіла документа
+      inject: "body",
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -58,16 +58,16 @@ module.exports = {
         },
       },
     },
-    minimize: false, // Для розробки зазвичай не мінімізуємо код
+    minimize: false,
     minimizer: [
       new TerserPlugin({
         terserOptions: {
           compress: {
-            drop_console: true, // Видалення консольних логів для продакшн (можна відключити в розробці)
+            drop_console: true,
           },
           mangle: false,
         },
-        extractComments: false, // Для розробки не потрібно витягувати коментарі
+        extractComments: false, 
       }),
     ],
   },

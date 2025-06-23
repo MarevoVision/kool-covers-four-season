@@ -201,14 +201,15 @@ I consent to Chaya Outdoors LLC using my personal information for sales, marketi
     submitHandler: async function (form, event) {
       event.preventDefault();
 
-      saveFormData();
+      // saveFormData();
 
-      // sendFormDataToGoogleSheets();
+      // await sendFormDataToGoogleSheets();
 
       if (!downloadPDF) {
         console.log("dowloan PDF");
 
         toggleLoad(true);
+
         await createPDF("download");
 
         toggleLoad(false);

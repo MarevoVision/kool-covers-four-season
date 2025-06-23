@@ -2,7 +2,6 @@ import Pickr from "@simonwep/pickr";
 import $ from "jquery";
 import {
   changeSceneTime,
-  GetGroup,
   hideIcon,
   pergola,
   pergolaConst,
@@ -22,7 +21,7 @@ export const lightRange = [
     max: 8,
     step: 1,
     thumb: true,
-    initialValue: state.recessedLighting,
+    initialValue: state.spacing,
     showLabels: true,
     showSwitchAngle: false,
   },
@@ -44,7 +43,7 @@ export const shadesRange = [
 
 export const bladeRotation = [
   {
-    title: "Roof Settings",
+    title: "Solid Roof Settings",
     min: 1,
     labelMin: "0",
     max: 90,
@@ -309,7 +308,7 @@ function removeHandle(
   });
 }
 
-function removeHandleSystem(
+export function removeHandleSystem(
   portalContainer,
   portalContentTitle,
   key,
@@ -317,9 +316,23 @@ function removeHandleSystem(
   typeIndex
 ) {
   portalContainer.find(".portal-container__remove").on("click", function () {
-    const lastSpan = pergola.getLastActiveSpan(state.currentActiveSystems)[0];
+    const privacyWall = $(".icon_container .sun__icon-active--1");
+    // const autoShade = $(".icon_container .sun__icon-active--0");
+    let lastSpan = null;
 
-    console.log(lastSpan);
+    state.currentActiveSystems = privacyWall.length ? 1 : 0;
+
+    // console.log(privacyWall, autoShade);
+
+    if (state.lastSpan) {
+      lastSpan = pergola.getLastActiveSpan(
+        state.currentActiveSystems,
+        state.lastSpan.side,
+        state.lastSpan.number
+      )[0];
+    } else {
+      lastSpan = pergola.getLastActiveSpan(state.currentActiveSystems)[0];
+    }
 
     pergola.removeSystemFromSpan(lastSpan);
 
@@ -328,6 +341,8 @@ function removeHandleSystem(
       state.currentActiveSystems,
       lastSpan.number
     );
+
+    state.lastSpan = null;
 
     if (!pergola.checkSystemInAllSpans(state.currentActiveSystems)) {
       hideIcon(typeIndex);
@@ -477,72 +492,6 @@ export function portalComponent() {
         `;
         break;
 
-      // case pergolaConst.systemType.sliding_doors:
-      //   portaInnerHtml = `
-      //     <h3 class="portal-container__title">${pergolaConst.systemNameString.sliding_doors}</h3>
-
-      //     <div class="portal-container__range" id="sliding-door-range_wrap">
-      //     ${slidingDoorRange}
-      //     </div>
-
-      //     <span class="portal-container__remove">Remove</span>
-      //   `;
-      //   break;
-
-      // case pergolaConst.systemType.autoShade:
-      //   portaInnerHtml = `
-      //     <h3 class="portal-container__title">${pergolaConst.systemNameString.autoShade}</h3>
-
-      //     <div class="portal-container__range" id="blade-range_wrap">
-      //     ${shadesRange}
-      //     </div>
-      //     <span class="portal-container__remove">Remove</span>
-      //   `;
-      //   break;
-
-      // case pergolaConst.systemType.sliding_shutters:
-      //   portaInnerHtml = `
-      //     <h3 class="portal-container__title">${pergolaConst.systemNameString.sliding_shutters}</h3>
-
-      //     <div class="portal-container__range" id="sl-rotate-range_wrap">
-      //      ${shuttersRotateRange}
-      //     </div>
-
-      //     <div class="portal-container__range" id="sl-open-range_wrap">
-      //      ${slidingShuttersRange}
-      //     </div>
-
-      //     <span class="portal-container__remove">Remove</span>
-      //   `;
-      //   break;
-
-      // case pergolaConst.systemType.fix_shutters:
-      //   portaInnerHtml = `
-      //     <h3 class="portal-container__title">${pergolaConst.systemNameString.fix_shutters}</h3>
-
-      //     <div class="portal-container__range" id="sl-rotate-range_wrap">
-      //      ${fixShuttersRotateRange}
-      //     </div>
-
-      //     <span class="portal-container__remove">Remove</span>
-      //   `;
-      //   break;
-
-      // case pergolaConst.systemType.privacyWall:
-      //   portaInnerHtml = `
-      //     <h3 class="portal-container__title">${pergolaConst.systemNameString.bifold_shutters}</h3>
-
-      //     <div class="portal-container__range" id="bs-open-range_wrap">
-      //     ${biFoldShattersRange}
-      //     </div>
-
-      //     <div class="portal-container__range" id="bs-rotate-range_wrap">
-      //     ${biFoldShattersRotateRange}
-      //     </div>
-      //     <span class="portal-container__remove">Remove</span>
-      //   `;
-      //   break;
-
       case pergolaConst.systemType.privacyWall:
         portaInnerHtml = `
           <h3 class="portal-container__title">${pergolaConst.systemNameString.privacyWall}</h3>
@@ -571,15 +520,222 @@ export function portalComponent() {
 
       case 10:
         portaInnerHtml = `
-          <h3 class="portal-container__title">${bladeRotation[0].title}</h3>
-
-          <div class="canvas_menu__title canvas_menu__title--blade-r">Blade Rotation</div>
-
-          <div class="portal-container__range" id="blade-range_wrap">
-          ${bladeRange}
+          <div class="info-pop" id="disable-thickness-massage">
+           ${state.thickness}" roof thickness is available only for pergolas under ${state.length} feet in length.
           </div>
 
-          <div class="canvas_menu_switch_container">
+          <h3 class="portal-container__title">${bladeRotation[0].title}</h3>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0" id="thickness">
+                  <div class="canvas_menu__title">Thickness:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="3">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">3"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="4">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">4"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="6">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">6"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+              <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0" id="rafter">
+                  <div class="canvas_menu__title">Rafter:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text" >Single</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">Double</span>
+                    </li>
+                  </ul>
+                 </div>
+              </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin-bottom: 20px" id="beam-size">
+                  <div class="canvas_menu__title">Beam Size:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">3x8"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">3x5"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 0" id="gutter">
+                  <div class="canvas_menu__title">Gutter:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text" >Scupper</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">Down Spout</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0; display: block;" id="overhang">
+                  <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
+
+                  <ul class="radio__container" style="justify-content: space-between;">
+                    <li class="radio__container__item" id="18">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text" >12"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="20">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">16"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="24">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text" >20"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="27">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">24"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+
+            <div class="select-inputs"  style="display: flex; gap: 20px;">
+                <div class="type_interface_checkbox-wall_item option" id="wrap-kit" style="width: fit-content;"> 
+                  <div class="type_interface_checkbox-wall_bottom">
+                    <input class="type_interface_checkbox-wall_option" type="checkbox">
+                    <label for="back" style="white-space: nowrap;">Pergola Wrap Kit</label>
+                  </div> 
+                </div>
+
+               <div class="type_interface_checkbox-wall_item option" id="skylight"  style="width: fit-content;"> 
+                  <div class="type_interface_checkbox-wall_bottom">
+                    <input class="type_interface_checkbox-wall_option" type="checkbox">
+                    <label for="back">Skylight</label>
+                  </div> 
+                </div>
+
+               <div class="type_interface_checkbox-wall_item option" id="tails"  style="width: fit-content;"> 
+                  <div class="type_interface_checkbox-wall_bottom">
+                    <input class="type_interface_checkbox-wall_option" type="checkbox">
+                    <label for="back">Tails</label>
+                  </div> 
+                </div>
+             </div>
+        `;
+
+        break;
+
+      case 11:
+        portaInnerHtml = `
+          <h3 class="portal-container__title" style="margin-bottom: 20px">Lattice Roof Settings</h3>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 0" id="spacing">
+                  <div class="canvas_menu__title">Spacing</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="1">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">1"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="2">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">2"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0" id="thickness">
+                  <div class="canvas_menu__title">Thickness:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">2"x2"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">3"x3"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0" id="rafter">
+                  <div class="canvas_menu__title">Rafter:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text" >Single</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">Double</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+           <div class="canvas_menu_switch_container">
             <div class="canvas_menu__title">Direction</div>
 
             <div class="switch-container">
@@ -591,8 +747,174 @@ export function portalComponent() {
 
               <div class="switch-container-sign switch-container-sign--right"></div>
             </div>
-          </div>
+           </div>
+
+             <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 20px 0; display: block;" id="overhang">
+                  <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
+
+                  <ul class="radio__container" style="justify-content: space-between;">
+                    <li class="radio__container__item" id="18">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text" >12"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="20">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">16"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="24">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text" >20"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="27">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">24"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
+              <div class="select-inputs"  style="display: flex; gap: 20px">
+                 <div class="type_interface_checkbox-wall_item option" id="rain" style="width: fit-content;"> 
+                    <div class="type_interface_checkbox-wall_bottom">
+                      <input class="type_interface_checkbox-wall_option" type="checkbox">
+                      <label for="back">Rain Shield</label>
+                    </div> 
+                  </div>
+
+                 <div class="type_interface_checkbox-wall_item option" id="remove-lettice"  style="width: fit-content;"> 
+                    <div class="type_interface_checkbox-wall_bottom">
+                      <input class="type_interface_checkbox-wall_option" type="checkbox">
+                      <label for="back">Remove Lattice</label>
+                    </div> 
+                  </div>
+              </div>
         `;
+
+        break;
+
+      case 12:
+        portaInnerHtml = `
+            <h3 class="portal-container__title">Combo Roof Settings</h3>
+  
+              <div class="radio-inputs"> 
+                 <div class="main_container" style="margin-bottom: 20px" id="beam-size">
+                  <div class="canvas_menu__title">Beam Size:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">3x8"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">3x5"</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+            
+            <p class="portal_sub-title">Lattice</p>
+
+              <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 10px 0 10px 0" id="thickness">
+                  <div class="canvas_menu__title">Thickness:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">2"x2"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">3"x3"</span>
+                    </li>
+                  </ul>
+                 </div>
+              </div>
+  
+              <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 0 0 20px 0" id="spacing">
+                  <div class="canvas_menu__title">Spacing</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="1">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">1"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="2">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">2"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="3">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">3"</span>
+                    </li>
+                  </ul>
+                 </div>
+              </div>
+
+            <p class="portal_sub-title">Solid</p>
+  
+              <div class="select-inputs"  style="display: flex; gap: 20px;">
+               <div class="type_interface_checkbox-wall_item option" id="skylight"  style="width: fit-content;"> 
+                  <div class="type_interface_checkbox-wall_bottom">
+                    <input class="type_interface_checkbox-wall_option" type="checkbox">
+                    <label for="back">Skylight</label>
+                  </div> 
+                </div>
+              </div>
+  
+               <div class="radio-inputs"> 
+                   <div class="main_container" style="margin: 10px 0 0 0; display: block;" id="overhang">
+                    <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
+  
+                    <ul class="radio__container" style="justify-content: space-between;">
+                      <li class="radio__container__item" id="18">
+                        <div class="radio__container__item__cyrcle"></div>
+  
+                        <span class="radio__container__item__text" >12"</span>
+                       </li>
+        
+                       <li class="radio__container__item" id="20">
+                         <div class="radio__container__item__cyrcle"></div>
+        
+                         <span class="radio__container__item__text">16"</span>
+                      </li>
+  
+                       <li class="radio__container__item" id="24">
+                         <div class="radio__container__item__cyrcle"></div>
+        
+                         <span class="radio__container__item__text" >20"</span>
+                      </li>
+  
+                       <li class="radio__container__item" id="28">
+                         <div class="radio__container__item__cyrcle"></div>
+        
+                         <span class="radio__container__item__text">24"</span>
+                      </li>
+                    </ul>
+                   </div>
+              </div>
+          `;
 
         break;
 
@@ -642,66 +964,463 @@ export function portalComponent() {
 
     //#endregion
 
-    //#region MOOD LIGHT
-    if ("Mood Light" === portalContentTitle) {
-      const mesh = GetGroup("base").children[1];
+    //#region LETTICE PORTAL || SOLID ROOF || COMBP
+    if (
+      "Lattice Roof Settings" === portalContentTitle ||
+      bladeRotation[0].title === portalContentTitle ||
+      "Combo Roof Settings"
+    ) {
+      // #region INIT Rain
+      portalContent.find("#rain").each(function () {
+        if (state.rain) {
+          $(this).addClass("active");
+        }
 
-      //#region INIT INPUT
+        pergola.update();
+      });
+      //  #endregion
+
+      // #region INIT SkyLight
+      portalContent.find("#skylight").each(function () {
+        if (state.skyLight) {
+          $(this).addClass("active");
+        }
+
+        if (state.width < 10) {
+          $(this).addClass("disable");
+          $(this).removeClass("active");
+          state.skyLight = false;
+        }
+
+        pergola.update();
+      });
+      //  #endregion
+
+      // #region INIT Tails
+      portalContent.find("#tails").each(function () {
+        if (!state.wrapKit) {
+          portalContent.find("#tails").addClass("disable");
+        }
+
+        if (state.tails) {
+          $(this).addClass("active");
+        }
+
+        pergola.update();
+      });
+      //  #endregion
+
+      // #region INIT Wrap-kit
+      portalContent.find("#wrap-kit").each(function () {
+        if (state.wrapKit) {
+          $(this).addClass("active");
+        }
+
+        if (state.wrapKit) {
+          portalContent
+            .find("#beam-size .radio__container__item")
+            .eq(1)
+            .addClass("disable");
+        }
+
+        pergola.update();
+      });
+      //  #endregion
+
+      // #region INIT Remove lattice
+      portalContent.find("#remove-lettice").each(function () {
+        if (state.removeLettice) {
+          $(this).addClass("active");
+        }
+
+        pergola.update();
+      });
+      //  #endregion
+
+      // #region INIT Direction
+      portalContent.find("#switchButton").each(function () {
+        if (state.directionRoof) {
+          $(this).addClass("switchButton-active");
+        }
+
+        pergola.update();
+      });
+      //  #endregion
+
+      //#region INIT overhang
       portalContent
-        .find(".type_interface_colors-buttons-led__item")
+        .find("#overhang .radio__container__item ")
         .each(function () {
-          const backgroundColor = pergola.rgbToHex(
-            $(this)
-              .closest(".type_interface_colors-buttons-led__item")
-              .find(".image-container")
-              .css("background-color")
-          );
+          const $input = $(this);
+          const id = +$(this).attr("id");
 
-          if (state.colorLed === backgroundColor) {
-            $(this)
-              .closest(".type_interface_colors-buttons-led__item")
-              .addClass(activeColorClass);
-            $(this).prop("checked", true);
+          if (id === state.overhang) {
+            $input.addClass("active");
           }
         });
       //#endregion
 
-      //#region HANDLE INPUTS
+      //#region INIT gutter
+      portalContent.find("#gutter .radio__container__item").each(function () {
+        const $input = $(this);
+        const id = +$(this).attr("id");
+
+        if (id === state.gutter) {
+          $input.addClass("active");
+        }
+      });
+      //#endregion
+
+      //#region INIT beam-size
       portalContent
-        .find(".type_interface_colors-buttons-led__item")
-        .on("click", function () {
-          const backgroundColor = pergola.rgbToHex(
-            $(this)
-              .closest(".type_interface_colors-buttons-led__item") // оновлений селектор
-              .find(".image-container")
-              .css("background-color")
-          );
+        .find("#beam-size .radio__container__item ")
+        .each(function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
 
-          state.colorLed = backgroundColor;
+          if (id === state.beamSize) {
+            $input.addClass("active");
+          }
 
-          // Додаємо активний клас
-          $(this)
-            .closest(".type_interface_colors-buttons-led__item") // оновлений селектор
-            .addClass(activeColorClass);
-
-          // Видаляємо активний клас у всіх інших елементах
-          $(this)
-            .closest(".type_interface_colors-buttons-led") // оновлений селектор
-            .find(".type_interface_colors-buttons-led__item") // оновлений селектор
-            .not($(this).closest(".type_interface_colors-buttons-led__item")) // оновлений селектор
-            .removeClass(activeColorClass);
-
-          // Зміна емісії кольору в mesh
-          if (mesh && mesh.material) {
-            mesh.material.emissive.set(state.colorLed);
-
-            mesh.children.forEach((child) => {
-              if (child.material) {
-                child.material.emissive.set(state.colorLed);
-              }
-            });
+          if (state.beamSize) {
+            portalContent.find("#wrap-kit").addClass("disable");
           }
         });
+      //#endregion
+
+      //#region INIT RAFTER
+      portalContent.find("#rafter .radio__container__item ").each(function () {
+        const $input = $(this);
+        const id = +$(this).attr("id");
+
+        // LOGIC SOLID
+        if (!state.tails && state.roofType === 1) {
+          $input.addClass("disable");
+
+          state.rafter = 0;
+        }
+
+        if (id === state.rafter) {
+          $input.addClass("active");
+        }
+      });
+      //#endregion
+
+      //#region INIT SPACING
+      portalContent.find("#spacing .radio__container__item ").each(function () {
+        const $input = $(this);
+        const id = +$(this).attr("id");
+
+        if (id === state.spacing) {
+          $input.addClass("active");
+        }
+      });
+      //#endregion
+
+      //#region INIT thickness
+      portalContent
+        .find("#thickness .radio__container__item ")
+        .each(function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          //LOGIC FOR SOLID
+          if (state.roofType === 1) {
+            switch (true) {
+              case id === 3 && state.length > 16 && state.length <= 20:
+                $input.addClass("disable");
+
+                state.thickness = state.thickness === 3 ? 4 : state.thickness;
+                break;
+
+              case id === 3 && 20 < state.length:
+              case id === 4 && 20 < state.length:
+                $input.addClass("disable");
+                state.thickness = 6;
+                break;
+            }
+          }
+
+          if (id === state.thickness) {
+            $input.addClass("active");
+          }
+        });
+      //#endregion
+
+      //#region HANDLE SPACING
+      portalContent
+        .find("#spacing .radio__container__item ")
+        .on("click", function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          state.spacing = id;
+
+          //REMOVE ACTIVE CLASS
+          portalContent
+            .find("#spacing .radio__container__item")
+            .each(function () {
+              $(this).removeClass("active");
+            });
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE thickness
+      // #region handle disable option
+      portalContent.find("#disable-thickness-massage").on("click", function () {
+        $(this).css("visibility", "hidden");
+      });
+      // #endregion
+
+      portalContent
+        .find("#thickness")
+        .on("click", ".radio__container__item", function () {
+          const $input = $(this);
+          const id = +$input.attr("id");
+          state.thickness = id;
+
+          $("#disable-thickness-massage").css("visibility", "hidden");
+
+          if ($input.hasClass("disable")) {
+            const message = `${id}" roof thickness is available only for pergolas under ${state.length} feet in length.`;
+
+            $("#disable-thickness-massage").text(message);
+            $("#disable-thickness-massage").css("visibility", "visible");
+
+            return;
+          }
+
+          portalContent
+            .find("#thickness .radio__container__item")
+            .removeClass("active");
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE rafter
+      portalContent
+        .find("#rafter .radio__container__item ")
+        .on("click", function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          state.rafter = id;
+
+          if ($input.hasClass("disable")) {
+            return;
+          }
+
+          //REMOVE ACTIVE CLASS
+          portalContent
+            .find("#rafter .radio__container__item")
+            .each(function () {
+              $(this).removeClass("active");
+            });
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE overhang
+      portalContent
+        .find("#overhang .radio__container__item ")
+        .on("click", function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          state.overhang = id;
+
+          //REMOVE ACTIVE CLASS
+          portalContent
+            .find("#overhang .radio__container__item")
+            .each(function () {
+              $(this).removeClass("active");
+            });
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE beam-size
+      portalContent
+        .find("#beam-size .radio__container__item")
+        .on("click", function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+          portalContent.find("#wrap-kit").removeClass("disable");
+
+          state.beamSize = id;
+
+          //REMOVE ACTIVE CLASS
+          portalContent
+            .find("#beam-size .radio__container__item")
+            .each(function () {
+              $(this).removeClass("active");
+            });
+
+          if (state.beamSize) {
+            portalContent.find("#wrap-kit").addClass("disable");
+          }
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE gutter
+      portalContent
+        .find("#gutter .radio__container__item")
+        .on("click", function () {
+          const $input = $(this);
+          const id = +$(this).attr("id");
+
+          state.gutter = id;
+
+          //REMOVE ACTIVE CLASS
+          portalContent
+            .find("#gutter .radio__container__item")
+            .each(function () {
+              $(this).removeClass("active");
+            });
+
+          $input.addClass("active");
+
+          pergola.update();
+        });
+      //#endregion
+
+      //#region HANDLE remove lettice
+      portalContent.find("#remove-lettice").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("active");
+
+        state.removeLettice = !state.removeLettice;
+
+        // if (state.removeLettice) {
+        //   portalContent.find("#rain").addClass("disable");
+        //   portalContent.find("#rain").removeClass("active");
+        //   state.rain = false;
+        // } else {
+        //   portalContent.find("#rain").removeClass("disable");
+        // }
+
+        pergola.update();
+      });
+      //#endregion
+
+      //#region HANDLE SkyLight
+      portalContent.find("#skylight").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("active");
+
+        state.skyLight = !state.skyLight;
+
+        pergola.update();
+      });
+      //#endregion
+
+      //#region HANDLE Tails
+      portalContent.find("#tails").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("active");
+
+        state.tails = !state.tails;
+
+        if (state.roofType === 1) {
+          portalContent
+            .find("#rafter .radio__container__item")
+            .each(function () {
+              const $input = $(this);
+              const id = +$(this).attr("id");
+
+              $input.removeClass("disable");
+              $input.removeClass("active");
+
+              if (!state.tails) {
+                $input.addClass("disable");
+
+                state.rafter = 0;
+              }
+
+              if (id === state.rafter) {
+                $input.addClass("active");
+              }
+            });
+        }
+
+        pergola.update();
+      });
+      //#endregion
+
+      //#region HANDLE Wrap-kit
+      portalContent.find("#wrap-kit").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("active");
+
+        state.wrapKit = !state.wrapKit;
+
+        if (state.wrapKit) {
+          portalContent.find("#tails").removeClass("disable");
+          portalContent
+            .find("#beam-size .radio__container__item")
+            .eq(1)
+            .addClass("disable");
+        } else {
+          portalContent
+            .find("#tails")
+            .addClass("disable")
+            .removeClass("active");
+
+          portalContent
+            .find("#beam-size .radio__container__item")
+            .eq(1)
+            .removeClass("disable");
+
+          state.tails = false;
+        }
+
+        pergola.update();
+      });
+      //#endregion
+
+      //#region HANDLE rain
+      portalContent.find("#rain").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("active");
+
+        state.rain = !state.rain;
+
+        pergola.update();
+      });
+      //#endregion
+
+      //#region HANDLE direction
+      portalContent.find("#switchButton").on("click", function () {
+        const $input = $(this);
+
+        $input.toggleClass("switchButton-active");
+
+        state.directionRoof = !state.directionRoof;
+
+        pergola.update();
+      });
       //#endregion
 
       //#region REMOVE BUTTON
@@ -773,7 +1492,7 @@ export function portalComponent() {
       portalContent.find(".radio__container__item").each(function () {
         const louverGap = +$(this).find(".radio__container__item__text").text();
 
-        if (state.recessedLighting === louverGap) {
+        if (state.spacing === louverGap) {
           $(this).closest(".radio__container__item").addClass("active");
         }
       });
@@ -783,7 +1502,7 @@ export function portalComponent() {
       portalContent.find(".radio__container__item").on("click", function () {
         const louverGap = +$(this).find(".radio__container__item__text").text();
 
-        state.recessedLighting = louverGap;
+        state.spacing = louverGap;
 
         portalContent.find(".radio__container__item").each(function () {
           $(this).removeClass("active");
@@ -853,39 +1572,6 @@ export function portalComponent() {
 
     //#region ZIP-SHADE
     if (pergolaConst.systemNameString.autoShade === portalContentTitle) {
-      //#region INIT INPUT
-      // //#region INIT COLOR
-      // portalContent
-      //   .find(".type_interface_colors-buttons-led__item")
-      //   .each(function () {
-      //     const backgroundColor = pergola.rgbToHex(
-      //       $(this)
-      //         .closest(".type_interface_colors-buttons-led__item")
-      //         .find(".image-container")
-      //         .css("background-color")
-      //     );
-
-      //     if (state.colorZip === backgroundColor) {
-      //       $(this)
-      //         .closest(".type_interface_colors-buttons-led__item")
-      //         .addClass(activeColorClass);
-      //       $(this).prop("checked", true);
-      //     }
-      //   });
-      // //#endregion
-
-      // //#region transparency
-      // portalContent.find(".radio__container__item").each(function () {
-      //   const transparency = $(this)
-      //     .find(".radio__container__item__text")
-      //     .attr("id");
-
-      //   if (state.transparency === transparency) {
-      //     $(this).closest(".radio__container__item").addClass("active");
-      //   }
-      // });
-      // //#endregion
-
       //#region INIT RANGE
       const $rangeThumbValue = portalContent.find("#range__thumb-value");
 
@@ -896,183 +1582,20 @@ export function portalComponent() {
       portalContent.find("#color-box").css("background-color", state.colorZip);
       //#endregion
 
-      //#endregion
-
-      //#region HANDLE INPUTS
-      // //#region COLOR HANDLE
-      // portalContent
-      //   .find(".type_interface_colors-buttons-led__item")
-      //   .on("click", function () {
-      //     const backgroundColor = pergola.rgbToHex(
-      //       $(this)
-      //         .closest(".type_interface_colors-buttons-led__item") // оновлений селектор
-      //         .find(".image-container")
-      //         .css("background-color")
-      //     );
-
-      //     state.colorZip = backgroundColor;
-
-      //     $(this)
-      //       .closest(".type_interface_colors-buttons-led__item")
-      //       .addClass(activeColorClass);
-
-      //     $(this)
-      //       .closest(".type_interface_colors-buttons-led")
-      //       .find(".type_interface_colors-buttons-led__item")
-      //       .not($(this).closest(".type_interface_colors-buttons-led__item")) // оновлений селектор
-      //       .removeClass(activeColorClass);
-
-      //     pergola.update();
-      //   });
-      // //#endregion
-
-      // //#region transparency INPUTS
-      // portalContent.find(".radio__container__item").on("click", function () {
-      //   const transparency = $(this)
-      //     .find(".radio__container__item__text")
-      //     .attr("id");
-
-      //   state.transparency = transparency;
-
-      //   portalContent.find(".radio__container__item").each(function () {
-      //     $(this).removeClass("active");
-      //   });
-
-      //   $(this).addClass("active");
-
-      //   pergola.update();
-      // });
-      // //#endregion
-
-      //#region open INPUTS
-
       createHandleRange(true, portalContent, "zipInput");
-      //#endregion
 
-      //#region REMOVE BUTTON
-      removeHandleSystem(
-        portalContent,
-        portalContentTitle,
-        "subSystem",
-        4,
-        pergolaConst.systemType.autoShade
-      );
-
-      //#endregion
-      //#endregion
-    }
-    //#endregion
-
-    //#region SLIDING DOOR
-    if (pergolaConst.systemNameString.sliding_doors === portalContentTitle) {
-      createHandleRange(true, portalContent, "slidingDoorInput");
-
-      removeHandleSystem(
-        portalContent,
-        portalContentTitle,
-        "subSystem",
-        1,
-        pergolaConst.systemType.sliding_doors
-      );
-    }
-
-    //#endregion
-
-    //#region BI-FOLD DOOR
-    if (pergolaConst.systemNameString.bifold_doors === portalContentTitle) {
-      createHandleRange(true, portalContent, "biFoldDoorInput");
-
-      removeHandleSystem(
-        portalContent,
-        portalContentTitle,
-        "subSystem",
-        2,
-        pergolaConst.systemType.autoShade
-      );
-    }
-
-    //#endregion
-
-    //#region SLIDING-SHATTERS
-    if (pergolaConst.systemNameString.sliding_shutters === portalContentTitle) {
-      //OPEN
-      createHandleRange(
-        true,
-        portalContent,
-        "slidingShuttersInput",
-        "#sl-open-range_wrap .range__input"
-      );
-
-      //ROTATE
-      createHandleRange(
-        true,
-        portalContent,
-        "slidingShuttersRotate",
-        "#sl-rotate-range_wrap .range__input"
-      );
-
-      removeHandleSystem(
-        portalContent,
-        portalContentTitle,
-        "subSystem",
-        4,
-        pergolaConst.systemType.sliding_shutters
-      );
-    }
-
-    //#endregion
-
-    //#region FIX SHATTERS
-    if (pergolaConst.systemNameString.fix_shutters === portalContentTitle) {
-      //ROTATE
-      createHandleRange(
-        true,
-        portalContent,
-        "slidingFixShuttersRotate",
-        ".range__input"
-      );
-
-      //REMOVE
       removeHandleSystem(
         portalContent,
         portalContentTitle,
         "subSystem",
         3,
-        pergolaConst.systemType.fix_shutters
+        pergolaConst.systemType.autoShade
       );
     }
+
     //#endregion
 
-    //#region BI-FOLD-SHATTERS
-    if (pergolaConst.systemNameString.bifold_shutters === portalContentTitle) {
-      //OPEN
-      createHandleRange(
-        true,
-        portalContent,
-        "biFoldDoorShattersInput",
-        "#bs-open-range_wrap .range__input"
-      );
-
-      //ROTATE
-      createHandleRange(
-        true,
-        portalContent,
-        "biFoldDoorShattersRotate",
-        "#bs-rotate-range_wrap .range__input"
-      );
-
-      //REMOVE
-      removeHandleSystem(
-        portalContent,
-        portalContentTitle,
-        "subSystem",
-        5,
-        pergolaConst.systemType.privacyWall
-      );
-    }
-    // #endregion
-
-    // #region SLATS
+    //#region PRIVACY WALL
 
     if (pergolaConst.systemNameString.privacyWall === portalContentTitle) {
       //#region SLATS SIZE INIT
@@ -1107,7 +1630,7 @@ export function portalComponent() {
         portalContent,
         portalContentTitle,
         "subSystem",
-        3,
+        2,
         pergolaConst.systemType.privacyWall
       );
     }
@@ -1182,7 +1705,19 @@ export function portalComponent() {
           "></span>
        </div>
 
-       <div class="sun__icon heaters__icon" id="10" data-value="Blade Rotation">
+       <div class="sun__icon heaters__icon" id="10" data-value="Solid Roof Settings">
+          <span class="sun__icon__img" id="heaters-n" style="
+              background-image: url(public/img/icons/roof.svg);
+          "></span>
+       </div>
+
+       <div class="sun__icon heaters__icon" id="11" data-value="Lattice Roof Settings">
+          <span class="sun__icon__img" id="heaters-n" style="
+              background-image: url(public/img/icons/roof.svg);
+          "></span>
+       </div>
+
+       <div class="sun__icon heaters__icon" id="12" data-value="Combo Roof Settings">
           <span class="sun__icon__img" id="heaters-n" style="
               background-image: url(public/img/icons/roof.svg);
           "></span>
@@ -1346,7 +1881,7 @@ export function portalComponent() {
       state.portalOption = +id;
 
       //blade rotation
-      if (+id !== 10 && +id !== 7 && +id !== 6) {
+      if (+id !== 10 && +id !== 7 && +id !== 6 && +id !== 11 && +id !== 12) {
         state.currentActiveSystems = +id;
       } else {
         state.currentActiveSystems = null;
@@ -1418,12 +1953,12 @@ export function portalComponent() {
   icon.hide();
 
   //DEFAULT BLADE POP UP
-  setTimeout(() => {
-    if (state.roofType) {
-      showIcon(10, true);
-      $("#interface").addClass("interface-container-portal");
-    }
-  }, 4000);
+  // setTimeout(() => {
+  //   if (state.roofType) {
+  //     showIcon(10, true);
+  //     $("#interface").addClass("interface-container-portal");
+  //   }
+  // }, 4000);
 
   scrollLogic();
 

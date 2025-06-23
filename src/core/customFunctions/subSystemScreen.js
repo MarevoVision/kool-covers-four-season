@@ -2,36 +2,36 @@ import $ from "jquery";
 import * as THREE from "three";
 import { typePortalOption } from "../../components/portal/portals";
 import {
-    ChangeGlobalMorph,
-    ConvertMorphValue,
-    ConvertMorphValueReverse,
-    generateMidpoints,
-    GetGroup,
-    GetMesh,
-    modelForExport,
-    ParseMorphByModel,
+  ChangeGlobalMorph,
+  ConvertMorphValue,
+  ConvertMorphValueReverse,
+  generateMidpoints,
+  GetGroup,
+  GetMesh,
+  modelForExport,
+  ParseMorphByModel,
 } from "../3d-configurator";
 import { getMobileOperatingSystem } from "../3d-scene";
 import { objectForRaycast, raycastItem } from "../raycast";
 import { state } from "../settings";
 import {
-    changeColorAndTexture,
-    clearClones,
-    columnClonesBottom,
-    columnClonesLeft,
-    columnClonesRight,
-    columnClonesTop,
-    getMeters,
-    screensClonesBottom,
-    screensClonesLeft,
-    screensClonesRight,
-    screensClonesTop,
-    stepForColumn,
+  changeColorAndTexture,
+  clearClones,
+  columnClonesBottom,
+  columnClonesLeft,
+  columnClonesRight,
+  columnClonesTop,
+  getMeters,
+  screensClonesBottom,
+  screensClonesLeft,
+  screensClonesRight,
+  screensClonesTop,
+  stepForColumn,
 } from "./customFunctions";
 import {
-    createHotspot,
-    hotspots,
-    setHotspotVisibility,
+  createHotspot,
+  hotspots,
+  setHotspotVisibility,
 } from "./subSystemHeaters";
 const spanColor = "#997A4F";
 
@@ -856,7 +856,7 @@ export function setSpansScreen() {
 
             shadesBottom.push(shade);
 
-            ChangeGlobalMorph("close", baseMorphBottom);
+            ChangeGlobalMorph("close_shades_side", baseMorphBottom);
 
             if (span.isShades) {
               shade.visible = true;

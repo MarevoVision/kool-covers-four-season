@@ -1,9 +1,7 @@
-import Pickr from "@simonwep/pickr";
 import $ from "jquery";
 import * as THREE from "three";
 import {
   ChangeGlobalMorph,
-  GetGroup,
   GetMesh,
   hideIcon,
   pergola,
@@ -21,16 +19,14 @@ import {
 } from "../../../../../core/customFunctions/initiSubSystem";
 import { state } from "../../../../../core/settings";
 import {
-  deleteActiveClassFromContainerRadioType,
   groups,
-  stringColorType,
-  stringPostSize,
+  stringEndCuts,
+  stringPostType,
   stringRoofType,
   stringTypePegola,
 } from "../../../interface";
 import "./interfaceGroupInputs.scss";
 import { generateRangeHTML } from "./range/generateRange";
-import { hostPublicPath, prod } from "../../../../../productionVars";
 
 export const colors = {
   White: "#1C1C1C",
@@ -51,9 +47,11 @@ export const typesInputs = {
   roofForLite: "liteRoof",
   typePergola: "typePergola",
   roofType: "roofTypes",
+  endCuts: "endCuts",
 };
 
-export let stringNameRoofColor = null;
+export let stringNameRoofLetticeColor = null;
+export let stringNameRoofSolidColor = null;
 export let stringNameFrameColor = null;
 
 export const typeSubSystem = {
@@ -64,6 +62,14 @@ export const typeSubSystem = {
   "Sliding Shutters": "Sliding Shutters",
   "Bi-Ffolding Shutters": "Bi-Ffolding Shutters",
   "Fixed Slats": "Fixed Slats",
+};
+
+export const wallAddOptionString = {
+  0: "Freestanding",
+  1: "Wall-mounted",
+  2: "Fascia-mounted",
+  3: "Roof-mounted",
+  4: "Cantilever",
 };
 
 export function updateTextParam(
@@ -91,7 +97,7 @@ export function updateTextParam(
       !customSetting.leftWall &&
       !customSetting.backWall
     ) {
-      text.push("Freestanding");
+      text.push(`${wallAddOptionString[state.wallOption]}`);
     }
   }
   if (subSystem) {
@@ -123,13 +129,13 @@ export function updateTextParam(
     .text(displayText);
 }
 
-export function updateMaterialMap(mesh) {
+export function updateMaterialMap(mesh, hex = false) {
   if (mesh?.material) {
     const isTexture =
       typeof state.colorRoof === "string" &&
       /\.(jpe?g|png|webp)$/i.test(state.colorRoof);
 
-    if (isTexture) {
+    if (isTexture && !hex) {
       const loader = new THREE.TextureLoader();
       loader.load(state.colorRoof, (texture) => {
         mesh.material.map = texture;
@@ -138,7 +144,7 @@ export function updateMaterialMap(mesh) {
       });
     } else {
       mesh.material.map = null;
-      mesh.material.color.set(state.colorRoof);
+      mesh.material.color.set(hex);
       mesh.material.needsUpdate = true;
     }
   }
@@ -173,9 +179,9 @@ export function interfaceGroupInputsComponent(
                   </div>
                 </form>`);
 
-      const activeModelClass = "type_interface_radio-model_item--active";
+      const activeModelClass = "active";
 
-      // //INIT MODEL
+      //INIT MODEL
       // if (!state.model) {
       //   $("#param-light").show();
       //   // $('.interface__group').eq(3).hide();
@@ -183,6 +189,17 @@ export function interfaceGroupInputsComponent(
       //   $("#param-light").hide();
       //   // $('.interface__group').eq(3).show();
       // }
+
+      //REDIRECT LOGIC
+      const azenco = radioModelInputs.find(".option").eq(0);
+      const fourSeason = radioModelInputs.find(".option").eq(1);
+      const fourK = radioModelInputs.find(".option").eq(2);
+
+      azenco.on("click", function () {
+        const link =
+          "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/azenco/dist/index.html";
+        window.location.href = link;
+      });
 
       radioModelInputs
         .find('.type_interface_radio-model_item input[type="radio"]')
@@ -312,37 +329,66 @@ export function interfaceGroupInputsComponent(
     case typesInputs.roofType:
       const radioRoofTypeContent = $(`
                 <form class="type_interface_radio-model">
-                  <div class="type_interface_radio-model_item option">
-                    <input data-value="0" class="type_interface_radio-model_option type_interface_radio-model_option--shade" 
+                  <div class="type_interface_radio-model_item option" id="lattice-roof">
+                    <input data-value="0" class="type_interface_radio-model_option type_interface_radio-model_option--lattice" 
                         type="radio" id="shade" name="fav_language" value="${stringRoofType[0]}"
                         style="height: 90px"
                         >
                     <label class="type_interface_radio-model_label" for="shade">${stringRoofType[0]}</label>
                   </div>
 
-                  <div class="type_interface_radio-model_item option">
-                    <input data-value="1" class="type_interface_radio-model_option type_interface_radio-model_option--blade" 
+                  <div class="type_interface_radio-model_item option" id="solid-roof">
+                    <input data-value="1" class="type_interface_radio-model_option type_interface_radio-model_option--solid" 
                         type="radio" id="blade" name="fav_language" value="${stringRoofType[1]}"
                         style="height: 90px"
                         >
                     <label class="type_interface_radio-model_label" for="blade">${stringRoofType[1]}</label>
                   </div>
+
+                  <div class="type_interface_radio-model_item option" id="combo-roof">
+                    <input data-value="2" class="type_interface_radio-model_option type_interface_radio-model_option--combo" 
+                        type="radio" id="blade" name="fav_language" value="${stringRoofType[2]}"
+                        style="height: 90px"
+                        >
+                    <label class="type_interface_radio-model_label" for="blade">${stringRoofType[2]}</label>
+                  </div>
                 </form>`);
 
-      const activeRoofTypeClass = "type_interface_radio-model_item--active";
+      const activeRoofTypeClass = "active";
 
-      // //INIT MODEL
+      //INIT ROOF
       radioRoofTypeContent
         .find('.type_interface_radio-model_item input[type="radio"]')
         .each(function () {
           const radioButton = $(this);
           const type = +$(this).attr("data-value");
+          const typeLattice = state.roofType === 0;
+          const typeSolid = state.roofType === 1;
+          const typeCombo = state.roofType === 2;
 
-          // showIcon(10, true);
+          // jQuery("#Bronze").closest("label").hide();
 
-          // if (!state.roofType) {
-          //   hideIcon(10);
-          // }
+          hideIcon(10);
+          hideIcon(11);
+          hideIcon(12);
+
+          $("#solid").show();
+
+          if (typeLattice) {
+            showIcon(11);
+          }
+
+          if (typeSolid) {
+            showIcon(10);
+            state.rain = false;
+            state.directionRoof = false;
+          }
+
+          if (typeCombo) {
+            showIcon(12);
+            state.rain = false;
+            state.directionRoof = false;
+          }
 
           if (state.roofType === type) {
             radioButton
@@ -351,38 +397,97 @@ export function interfaceGroupInputsComponent(
           }
 
           setTimeout(() => {
-            if (!state.roofType) {
-              $("#wood-toggle").hide();
-              state.colorRoof = "#000000";
-              updateMaterialMap(pergola.roof.solidRoof[0].object);
-            } else {
-              $("#wood-toggle").show();
+            if (typeLattice) {
+              $("#solid").hide();
             }
-          }, 1000);
+            if (typeSolid) {
+              $("#lettice").hide();
+            }
+          }, 0);
         });
 
-      //#region HANDLE MODEL
+      //#region HANDLE ROOF
       radioRoofTypeContent
         .find('.type_interface_radio-model_item input[type="radio"]')
         .on("change", function () {
           // CHANGE STATE
           state.roofType = +$(this).attr("data-value");
 
-          showIcon(10, true);
+          const typeLattice = state.roofType === 0;
+          const typeSolid = state.roofType === 1;
+          const typeCombo = state.roofType === 2;
 
-          if (!state.roofType) {
-            hideIcon(10);
-            state.colorRoof = "#000000";
+          state.directionRoof = false;
 
-            $("#wood-toggle").hide();
-            setTimeout(() => {
-              pergola.setSolidRoof();
-            }, 300);
+          hideIcon(10);
+          hideIcon(11);
+          hideIcon(12);
 
-            console.log("hide WOOD");
-          } else {
-            $("#wood-toggle").show();
+          $("#solid").show();
+          $("#lettice").show();
+
+          if (typeLattice) {
+            showIcon(11);
+            state.thickness = 0;
+            $("#solid").hide();
+            $("#lettice .option")
+              .eq($("#lettice .option").length - 1)
+              .trigger("change");
           }
+
+          if (typeSolid) {
+            showIcon(10);
+            $("#lettice").hide();
+            state.thickness = 3;
+            state.rain = false;
+            $("#solid .option")
+              .eq($("#lettice .option").length)
+              .trigger("change");
+          }
+
+          if (typeCombo) {
+            showIcon(12);
+            state.thickness = 0;
+            state.rain = false;
+            $("#solid .option")
+              .eq($("#lettice .option").length)
+              .trigger("change");
+            $("#lettice .option")
+              .eq($("#lettice .option").length - 1)
+              .trigger("change");
+          }
+
+          // #region RE-INIT thickness
+          $(".portal-container")
+            .find("#thickness .radio__container__item ")
+            .each(function () {
+              const $input = $(this);
+              const id = +$(this).attr("id");
+
+              //LOGIC FOR SOLID
+              if (state.roofType === 1) {
+                switch (true) {
+                  case id === 3 && state.length > 16 && state.length <= 20:
+                    $input.addClass("disable");
+
+                    state.thickness =
+                      state.thickness === 3 ? 4 : state.thickness;
+                    break;
+
+                  case id === 3 && 20 < state.length:
+                  case id === 4 && 20 < state.length:
+                    $input.addClass("disable");
+                    state.thickness = 6;
+                    break;
+                }
+              }
+
+              if (id === state.thickness) {
+                $input.addClass("active");
+              }
+            });
+
+          // #endregion
 
           const parentItem = $(this).closest(
             ".type_interface_radio-model_item"
@@ -409,8 +514,31 @@ export function interfaceGroupInputsComponent(
 
     case typesInputs.selectButton:
       const selectWalls = $(`
-              <form class="type_interface_checkbox-wall">
-                <div class="type_interface_checkbox-wall_item option" id="back"> 
+              <form class="type_interface_checkbox-wall type_interface_checkbox-wall--four-season">
+                <div class="wrapp-wall-add-option">
+                  <div class="type_interface_post-size_item option" id="0">
+                      <input class="type_interface_post-size_option" type="radio"  name="fav_language" value="${stringPostType[0]}">
+                      <label for="0">Freestanding</label>
+                  </div>
+             
+                  <div class="type_interface_post-size_item option" id="1">
+                      <input class="type_interface_post-size_option" type="radio"  name="fav_language" value="${stringPostType[1]}">
+                      <label for="1">Wall-mounted</label>
+                 </div>
+
+                  <div class="type_interface_post-size_item option" id="2">
+                      <input class="type_interface_post-size_option" type="radio"  name="fav_language" value="${stringPostType[0]}">
+                      <label for="0">Fascia-mounted</label>
+                  </div>
+             
+                  <div class="type_interface_post-size_item option" id="3">
+                      <input class="type_interface_post-size_option" type="radio"  name="fav_language" value="${stringPostType[1]}">
+                      <label for="1">Roof-mounted</label>
+                 </div>
+                </div>
+              
+                <div class="wrapp-wall" id="wall-option">
+                   <div class="type_interface_checkbox-wall_item option" id="back"> 
                   <div class="type_interface_checkbox-wall_item-img type_interface_checkbox-wall_item-img--back"></div>
 
                   <div class="type_interface_checkbox-wall_bottom">
@@ -436,10 +564,11 @@ export function interfaceGroupInputsComponent(
                     <label for="right">Right Wall</label>
                   </div> 
                 </div>
+              </div>
               </form>
                `);
 
-      const activeWallClass = "type_interface_checkbox-wall_item--active";
+      const activeWallClass = "active";
       const backWall = selectWalls.find("#back");
       const leftWall = selectWalls.find("#left");
       const rightWall = selectWalls.find("#right");
@@ -451,6 +580,20 @@ export function interfaceGroupInputsComponent(
           item.removeClass(activeWallClass);
         }
       }
+
+      //INIT ADD OTPION
+      selectWalls.find(".wrapp-wall-add-option .option").each(function () {
+        const id = +$(this).attr("id");
+        const $item = $(this);
+
+        if (state.wallOption === id) {
+          $item.addClass("active");
+
+          setTimeout(() => {
+            pergola.setAddOptionWall();
+          }, 300);
+        }
+      });
 
       // INIT BUTTONS WALL
       toggleBackWall(state.backWall);
@@ -474,59 +617,23 @@ export function interfaceGroupInputsComponent(
         state.backWall = !state.backWall;
         removeFromUrlSystemBySide(pergolaConst.side.Back);
 
+        const backBeam = GetMesh("back_beam_wall");
+        const backBeamL = GetMesh("beam_wall_L");
+        const backBeamR = GetMesh("beam_wall_L001");
+        backBeam.visible = false;
+        backBeamL.visible = false;
+        backBeamR.visible = false;
+
+        if (state.wallOption === 2) {
+          if (state.backWall) backBeam.visible = true;
+          if (state.leftWall) backBeamL.visible = true;
+          if (state.rightWall) backBeamR.visible = true;
+        }
+
         pergola.update();
 
         toggleBackWall(state.backWall);
         toggleClass($(this), state.backWall);
-
-        // spansScreen
-        //   .filter((span) => span.side === "top")
-        //   .forEach((span) => {
-        //     span.isScreen = false;
-        //     span.isShades = false;
-
-        //     span.columns &&
-        //       span.columns.forEach((column) => (column.visible = false));
-
-        //     span.prepareScreens.forEach((data) => {
-        //       data.screen.visible = false;
-
-        //       data.screen.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-
-        //     span.prepareShades.forEach((data) => {
-        //       data.shade.visible = false;
-
-        //       data.shade.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-        //   });
-
-        // spansHeaters
-        //   .filter((span) => span.side === "top")
-        //   .forEach((span, index) => {
-        //     span.isHeater = false;
-
-        //     const UFO = modelForExport.children.find(
-        //       (group) =>
-        //         group.name.includes(`clone_ufo`) &&
-        //         group.name.includes(span.side)
-        //     );
-
-        //     if (UFO) {
-        //       UFO.visible = false;
-        //       UFO.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     }
-        //   });
-
-        // state.currentActiveSpans = state.currentActiveSpans.filter(
-        //   (id) => !id.includes("top")
-        // );
 
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
@@ -536,59 +643,23 @@ export function interfaceGroupInputsComponent(
         state.leftWall = !state.leftWall;
         removeFromUrlSystemBySide(pergolaConst.side.Left);
 
+        const backBeam = GetMesh("back_beam_wall");
+        const backBeamL = GetMesh("beam_wall_L");
+        const backBeamR = GetMesh("beam_wall_L001");
+        backBeam.visible = false;
+        backBeamL.visible = false;
+        backBeamR.visible = false;
+
+        if (state.wallOption === 2) {
+          if (state.backWall) backBeam.visible = true;
+          if (state.leftWall) backBeamL.visible = true;
+          if (state.rightWall) backBeamR.visible = true;
+        }
+
         pergola.update();
 
         toggleLeftWall(state.leftWall);
         toggleClass($(this), state.leftWall);
-
-        // spansScreen
-        //   .filter((span) => span.side === "left")
-        //   .forEach((span) => {
-        //     span.isScreen = false;
-        //     span.isShades = false;
-
-        //     span.columns &&
-        //       span.columns.forEach((column) => (column.visible = false));
-
-        //     span.prepareScreensZ.forEach((data) => {
-        //       data.screen.visible = false;
-
-        //       data.screen.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-
-        //     span.prepareShadesZ.forEach((data) => {
-        //       data.shadeZ.visible = false;
-
-        //       data.shadeZ.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-        //   });
-
-        // state.currentActiveSpans = state.currentActiveSpans.filter(
-        //   (id) => !id.includes("left")
-        // );
-
-        // spansHeaters
-        //   .filter((span) => span.side === "left")
-        //   .forEach((span, index) => {
-        //     span.isHeater = false;
-
-        //     const UFO = modelForExport.children.find(
-        //       (group) =>
-        //         group.name.includes(`clone_ufo`) &&
-        //         group.name.includes(span.side)
-        //     );
-
-        //     if (UFO) {
-        //       UFO.visible = false;
-        //       UFO.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     }
-        //   });
 
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
@@ -598,63 +669,48 @@ export function interfaceGroupInputsComponent(
         state.rightWall = !state.rightWall;
         removeFromUrlSystemBySide(pergolaConst.side.Right);
 
+        const backBeam = GetMesh("back_beam_wall");
+        const backBeamL = GetMesh("beam_wall_L");
+        const backBeamR = GetMesh("beam_wall_L001");
+        backBeam.visible = false;
+        backBeamL.visible = false;
+        backBeamR.visible = false;
+
+        if (state.wallOption === 2) {
+          if (state.backWall) backBeam.visible = true;
+          if (state.leftWall) backBeamL.visible = true;
+          if (state.rightWall) backBeamR.visible = true;
+        }
+
         pergola.update();
 
         toggleRightWall(state.rightWall);
         toggleClass($(this), state.rightWall);
 
-        // spansScreen
-        //   .filter((span) => span.side === "right")
-        //   .forEach((span) => {
-        //     span.isScreen = false;
-        //     span.isShades = false;
-
-        //     span.columns &&
-        //       span.columns.forEach((column) => (column.visible = false));
-
-        //     span.prepareScreensZ.forEach((data) => {
-        //       data.screen.visible = false;
-
-        //       data.screen.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-
-        //     span.prepareShadesZ.forEach((data) => {
-        //       data.shadeZ.visible = false;
-
-        //       data.shadeZ.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     });
-        //   });
-
-        // state.currentActiveSpans = state.currentActiveSpans.filter(
-        //   (id) => !id.includes("right")
-        // );
-
-        // spansHeaters
-        //   .filter((span) => span.side === "right")
-        //   .forEach((span, index) => {
-        //     span.isHeater = false;
-
-        //     const UFO = modelForExport.children.find(
-        //       (group) =>
-        //         group.name.includes(`clone_ufo`) &&
-        //         group.name.includes(span.side)
-        //     );
-
-        //     if (UFO) {
-        //       UFO.visible = false;
-        //       UFO.children.forEach((child) => {
-        //         child.visible = false;
-        //       });
-        //     }
-        //   });
-
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
       });
+
+      selectWalls
+        .find(".wrapp-wall-add-option .option")
+        .on("click", function () {
+          const id = +$(this).attr("id");
+          const $item = $(this);
+
+          state.wallOption = id;
+
+          selectWalls
+            .find(".wrapp-wall-add-option .option")
+            .removeClass("active");
+
+          $item.addClass("active");
+
+          pergola.setAddOptionWall();
+
+          pergola.update();
+
+          updateTextParam(state, this);
+        });
 
       return selectWalls;
 
@@ -672,56 +728,172 @@ export function interfaceGroupInputsComponent(
     case typesInputs.postSize:
       const postSizeContent = $(`
               <form class="type_interface_post-size">
-                  <div class="type_interface_post-size_item option">
-                      <input class="type_interface_post-size_option" type="radio" id="0" name="fav_language" value="${stringPostSize[0]}">
-                      <label for="0">6.5" x 6.5"</label>
+              <div class="wrapp_post-type"> 
+                  <div class="type_interface_radio-model_item option" id="0">
+                    <input data-value="0" class="type_interface_radio-model_option type_interface_post-size_option--standart" 
+                        type="radio" id="shade" name="fav_language" value="${stringPostType[0]}"
+                        style="height: 90px"
+                        >
+                    <label class="type_interface_radio-model_label" for="shade">${stringPostType[0]}</label>
                   </div>
-             
-                  <div class="type_interface_post-size_item option">
-                      <input class="type_interface_post-size_option" type="radio" id="1" name="fav_language" value="${stringPostSize[1]}">
-                      <label for="1">8" x 8"</label>
+
+                  <div class="type_interface_radio-model_item option" id="1">
+                    <input data-value="1" class="type_interface_radio-model_option type_interface_post-size_option--square" 
+                        type="radio" id="blade" name="fav_language" value="${stringPostType[1]}"
+                        style="height: 90px"
+                        >
+                    <label class="type_interface_radio-model_label" for="blade">${stringPostType[1]}</label>
+                  </div>
+
+                  <div class="type_interface_radio-model_item option" id="2">
+                    <input data-value="1" class="type_interface_radio-model_option type_interface_post-size_option--round" 
+                        type="radio" id="blade" name="fav_language" value="${stringPostType[2]}"
+                        style="height: 90px"
+                        >
+                    <label class="type_interface_radio-model_label" for="blade">${stringPostType[2]}</label>
+                  </div>
+              </div>
+              
+              <div class="wrapp_post-add">
+                <div class="radio-inputs"> 
+                 <div class="main_container" style="margin: 0" id="slats_radio">
+                  <div class="canvas_menu__title">Size</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="8">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">8"</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="10">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text" >10"</span>
+                    </li>
+
+                     <li class="radio__container__item" id="12">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">12"</span>
+                    </li>
+                  </ul>
                  </div>
+                </div>
+                
+                <div class="select-inputs">
+                 <div class="type_interface_checkbox-wall_item option" id="double-header"> 
+                    <div class="type_interface_checkbox-wall_bottom">
+                      <input class="type_interface_checkbox-wall_option" type="checkbox">
+                      <label for="back">Double Header</label>
+                    </div> 
+                  </div>
+                </div>
+              </div>
+
               </form>
           `);
 
-      const activeClass = "type_interface_post-size_item--active";
+      const activeClass = "active";
 
-      // //INIT INPUT
-      postSizeContent.find(".type_interface_post-size_item").each(function () {
-        $(this).removeClass(activeClass);
+      // INIT POST TYPE INPUT
+      postSizeContent.find(".wrapp_post-type .option").each(function () {
+        if (state.postType === +$(this).attr("id")) {
+          $(this).addClass(activeClass);
+          postSizeContent.find(".radio-inputs").hide();
 
-        if (state.postSize === +$(this).find("input").attr("id")) {
+          if (state.postType) {
+            state.beam = true;
+            postSizeContent.find("#double-header").addClass("active");
+            postSizeContent.find("#double-header").addClass("disable-radio");
+            postSizeContent.find(".radio-inputs").show();
+          }
+
+          setTimeout(() => {
+            const paramLabel = $(this).find("input").val();
+
+            const $groupHeadParam = $(this)
+              .closest(".interface__group")
+              .find(".interface__group__head__param");
+
+            $groupHeadParam.text(paramLabel);
+          }, 0);
+        }
+      });
+
+      //INIT POST SIZE
+      postSizeContent.find(".radio__container__item").each(function () {
+        if (state.postSize === +$(this).attr("id")) {
           $(this).addClass(activeClass);
         }
       });
 
-      //HANDLE INPUT
-      postSizeContent
-        .find(".type_interface_post-size_item")
-        .on("click", function () {
-          postSizeContent
-            .find(".type_interface_post-size_item")
-            .removeClass(activeClass);
-
-          const paramLabel = $(this).find("input").val();
-          state.postSize = +$(this).find("input").attr("id");
-
+      //INIT DOUBLE HEADER
+      postSizeContent.find("#double-header").each(function () {
+        if (state.beam) {
           $(this).addClass(activeClass);
+        }
+      });
 
-          const $groupHeadParam = $(this)
-            .closest(".interface__group")
-            .find(".interface__group__head__param");
+      //HANDLE POST TYPE
+      postSizeContent.find(".wrapp_post-type .option").on("click", function () {
+        postSizeContent
+          .find(".wrapp_post-type .option")
+          .removeClass(activeClass);
 
-          $groupHeadParam.text(paramLabel);
+        const paramLabel = $(this).find("input").val();
+        state.postType = +$(this).attr("id");
 
-          pergola.update();
-        });
+        //CHANGE BEAM DEPENDENCE TYPE
+        state.beam = false;
+        postSizeContent.find("#double-header").removeClass("active");
+        postSizeContent.find("#double-header").removeClass("disable-radio");
+        postSizeContent.find(".radio-inputs").hide();
+
+        if (state.postType) {
+          state.beam = true;
+          postSizeContent.find("#double-header").addClass("active");
+          postSizeContent.find("#double-header").addClass("disable-radio");
+          postSizeContent.find(".radio-inputs").show();
+        }
+
+        $(this).addClass(activeClass);
+
+        const $groupHeadParam = $(this)
+          .closest(".interface__group")
+          .find(".interface__group__head__param");
+
+        $groupHeadParam.text(paramLabel);
+
+        pergola.update();
+      });
+
+      //HANDLE POST SIZE
+      postSizeContent.find(".radio__container__item").on("click", function () {
+        postSizeContent
+          .find(".radio__container__item")
+          .removeClass(activeClass);
+
+        state.postSize = +$(this).attr("id");
+
+        $(this).addClass(activeClass);
+
+        pergola.update();
+      });
+
+      //HANDLE DOUBLE HEADER
+      postSizeContent.find("#double-header").on("click", function () {
+        $(this).toggleClass(activeClass);
+        state.beam = !state.beam;
+
+        pergola.update();
+      });
 
       return postSizeContent;
 
     case typesInputs.typePergola:
       const typePergolaContent = $(`
-          <form class="type_interface_post-size">
+          <form class="type_interface_post-size" style="flex-direction: row;">
               <div class="type_interface_post-size_item option">
                   <input class="type_interface_post-size_option" type="radio" id="0" name="fav_language" value="${stringTypePegola[0]}">
                   <label for="0">${stringTypePegola[0]}</label>
@@ -734,13 +906,15 @@ export function interfaceGroupInputsComponent(
           </form>
       `);
 
-      const activeClassTypePergola = "type_interface_post-size_item--active";
+      const activeClassTypePergola = "active";
 
       // //INIT INPUT
       typePergolaContent
         .find(".type_interface_post-size_item")
         .each(function () {
           $(this).removeClass(activeClassTypePergola);
+
+          pergola.changeWallMaterials();
 
           if (state.typePergola === +$(this).find("input").attr("id")) {
             $(this).addClass(activeClassTypePergola);
@@ -758,6 +932,8 @@ export function interfaceGroupInputsComponent(
           const paramLabel = $(this).find("input").val();
           state.typePergola = +$(this).find("input").attr("id");
 
+          pergola.changeWallMaterials();
+
           $(this).addClass(activeClassTypePergola);
 
           const $groupHeadParam = $(this)
@@ -765,10 +941,11 @@ export function interfaceGroupInputsComponent(
             .find(".interface__group__head__param");
 
           $groupHeadParam.text(paramLabel);
+          pergola.update();
 
-          toggleBackWall(state.backWall);
-          toggleLeftWall(state.leftWall);
-          toggleRightWall(state.rightWall);
+          // toggleBackWall(state.backWall);
+          // toggleLeftWall(state.leftWall);
+          // toggleRightWall(state.rightWall);
 
           // updatePostSizeParams.call(this, selectedIndex);
         });
@@ -776,510 +953,564 @@ export function interfaceGroupInputsComponent(
       return typePergolaContent;
 
     case typesInputs.colorsButton:
-      const colorButtonContent = $(`
-                    <form class="type_interface_colors-buttons">
-                    
-                    <div class="colors_container">
-                       <div class="type_interface_colors-buttons_item option">
-                            <label class="type_interface_colors-buttons_label">
-                                <div class="image-container" style="background-color: #FFFFFF">
-                                </div>
-                                <span class="color-name">White</span>
-                                <input class="type_interface_colors-buttons_option" type="radio" id="TexturedBlack" name="fav_language" value="White">
-                            </label>
-                        </div>
-                        
-                        <div class="type_interface_colors-buttons_item option">
-                            <label class="type_interface_colors-buttons_label">
-                                <div class="image-container"  style="background-color: #000000 ">
-                                </div>
-                                <span class="color-name">Black</span>
-                                <input class="type_interface_colors-buttons_option" type="radio" id="TexturedWhite" name="fav_language" value="Black">
-                            </label>
-                        </div>
-                
-                        <div class="type_interface_colors-buttons_item option">
-                            <label class="type_interface_colors-buttons_label">
-                                <div class="image-container" style="background-color: #3A3A3A">
-                                </div>
-                                <span class="color-name">Dark Gray</span>
-                                <input class="type_interface_colors-buttons_option" type="radio" id="IndustrialGrey" name="fav_language" value="Dark Gray">
-                            </label>
-                        </div>
-                
-                        <div class="type_interface_colors-buttons_item option">
-                            <label class="type_interface_colors-buttons_label">
-                                <div class="image-container" style="background-color: #312C2F">
-                                </div>
-                                <span class="color-name">Bronze</span>
-                                <input class="type_interface_colors-buttons_option" type="radio" id="Charcoal" name="fav_language" value="Bronze">
-                            </label>
-                        </div>
-                
-                        <div class="type_interface_colors-buttons_item option">
-                            <label class="type_interface_colors-buttons_label">
-                                <div class="image-container" style="background-color: #694123">
-                                </div>
-                                <span class="color-name">Wood Grain</span>
-                                <input class="type_interface_colors-buttons_option" type="radio" id="C34Bronze" name="fav_language" value="Wood Grain">
-                            </label>
-                        </div>
-                    </div>
-                    
-               
-                    <div class="color-bottom">
-                      <div class="colors_picker_container">
-                      <div id="color-box" class="colors_picker_color" style="background-color: ${
-                        title === "Frame Color"
-                          ? state.colorBody
-                          : state.colorRoof
-                      }"></div>
-                      
-                      <div class="colors_picker_button" id="color-picker">
-                        Color Picker
-                      </div>
-                
-                      <div id="color-picker-container"></div>
-                     </div>
+      const colorsRoofSolid = [
+        {
+          name: "Matte White",
+          value: "Matte White",
+          image: "matte-white.png",
+          id: "MatteWhite",
+          hex: "#CAC6C5",
+        },
+        {
+          name: "White",
+          value: "White",
+          image: "white.png",
+          id: "White",
+          hex: "#D7D1D0",
+        },
+        {
+          name: "Adobe",
+          value: "Adobe",
+          image: "adobe.png",
+          id: "Adobe",
+          hex: "#998F7A",
+        },
+        {
+          name: "Wheat",
+          value: "Wheat",
+          image: "wheat.png",
+          id: "Wheat",
+          hex: "#9C9481",
+        },
+        {
+          name: "Ivory",
+          value: "Ivory",
+          image: "ivory.png",
+          id: "Ivory",
+          hex: "#C7C2A9",
+        },
+        {
+          name: "Bronze",
+          value: "Bronze",
+          image: "bronze.png",
+          id: "Bronze",
+          hex: "#58544F",
+        },
+        {
+          name: "Brown",
+          value: "Brown",
+          image: "bronze.png",
+          id: "Brown",
+          hex: "#804030",
+        },
+        {
+          name: "Sand",
+          value: "Sand",
+          image: "bronze.png",
+          id: "Sand",
+          hex: "#F6D7B0",
+        },
+      ];
 
-                     <p class="add-info">*additional cost</p>
-                    </div>
-                    
-                    </form>
-                `);
+      const colorsRoofLettice = [
+        {
+          name: "White",
+          value: "White",
+          image: "white.png",
+          id: "White",
+          hex: "#D7D1D0",
+        },
+        {
+          name: "Adobe",
+          value: "Adobe",
+          image: "adobe.png",
+          id: "Adobe",
+          hex: "#998F7A",
+        },
+        {
+          name: "Wheat",
+          value: "Wheat",
+          image: "wheat.png",
+          id: "Wheat",
+          hex: "#9C9481",
+        },
+        {
+          name: "Ivory",
+          value: "Ivory",
+          image: "ivory.png",
+          id: "Ivory",
+          hex: "#C7C2A9",
+        },
+        {
+          name: "Brown",
+          value: "Brown",
+          image: "bronze.png",
+          id: "Brown",
+          hex: "#804030",
+        },
+        {
+          name: "Sand",
+          value: "Sand",
+          image: "bronze.png",
+          id: "Sand",
+          hex: "#F6D7B0",
+        },
+      ];
 
-      const colorButtonRoof = $(`
-                  <form class="type_interface_colors-buttons">
-                    <div class="type_interface_post-size">
-                  <div class="type_interface_post-size_item option">
-                      <input class="type_interface_post-size_option" type="radio" id="0" name="fav_language" value="${
-                        stringColorType[0]
-                      }">
-                      <label for="0">${stringColorType[0]}</label>
-                  </div>
-             
-                  <div class="type_interface_post-size_item option" id="wood-toggle">
-                      <input class="type_interface_post-size_option" type="radio" id="1" name="fav_language" value="${
-                        stringColorType[1]
-                      }">
-                      <label for="0">${stringColorType[1]}</label>
-                 </div>
-              </div>
-                
-                    <div class="colors_container" id="standart-color">
-                      ${[
-                        { color: "#FFFFFF", name: "White" },
-                        { color: "#000000", name: "Black" },
-                        { color: "#3A3A3A", name: "Dark Gray" },
-                        { color: "#312C2F", name: "Bronze" },
-                        { color: "#694123", name: "Wood Grain" },
-                      ]
-                        .map(
-                          (item, i) => `
-                        <div class="type_interface_colors-buttons_item option">
-                          <label class="type_interface_colors-buttons_label">
-                            <div class="image-container" style="background-color: ${item.color}"></div>
-                            <span class="color-name">${item.name}</span>
-                            <input class="type_interface_colors-buttons_option" type="radio" id="standard-color-${i}" name="color_option" value="${item.name}">
-                          </label>
-                        </div>
-                      `
-                        )
-                        .join("")}
-                    </div>
-                
-                    <div class="colors_container" id="textured-color">
-                    ${[
-                      "Bamboo",
-                      "Teak",
-                      "Golden Oak",
-                      "Dark Oak",
-                      "Oak",
-                      "Knotty Pine",
-                      "National Walnut",
-                      "Dark Walnut",
-                      "American Douglas",
-                      "Cherry",
-                      "Cherry Half Flame",
-                      "Europian Cherry",
-                      "Mediterranean Cherry",
-                      "Cherry With Flame",
-                    ]
-                      .map((name, i) => {
-                        const nameFormat = name
-                          .toLowerCase()
-                          .replace(/\s+/g, "_");
-                        const imagePath = `public/img/textures/wood_${nameFormat}.jpg`;
+      const colorsFrame = [
+        {
+          name: "White",
+          value: "White",
+          image: "white.png",
+          id: "White",
+          hex: "#D7D1D0",
+        },
+        {
+          name: "Adobe",
+          value: "Adobe",
+          image: "adobe.png",
+          id: "Adobe",
+          hex: "#998F7A",
+        },
+        {
+          name: "Wheat",
+          value: "Wheat",
+          image: "wheat.png",
+          id: "Wheat",
+          hex: "#9C9481",
+        },
+        {
+          name: "Ivory",
+          value: "Ivory",
+          image: "ivory.png",
+          id: "Ivory",
+          hex: "#C7C2A9",
+        },
+        {
+          name: "Brown",
+          value: "Brown",
+          image: "bronze.png",
+          id: "Brown",
+          hex: "#804030",
+        },
+        {
+          name: "Sand",
+          value: "Sand",
+          image: "bronze.png",
+          id: "Sand",
+          hex: "#F6D7B0",
+        },
+      ];
 
-                        return `
-                        <div class="type_interface_colors-buttons_item option">
-                          <label class="type_interface_colors-buttons_label">
-                            <div class="image-container" style="background-image: url('${imagePath}'); background-size: cover;"></div>
-                            <span class="color-name">${name}</span>
-                            <input class="type_interface_colors-buttons_option" type="radio" id="textured-color-${i}" name="color_option" value="${name}">
-                          </label>
-                        </div>
-                      `;
-                      })
-                      .join("")}
-                    
-                    </div>
-                
-                    <div class="color-bottom">
-                      <div class="colors_picker_container">
-                      <div id="color-box" class="colors_picker_color" style="background-color: ${
-                        title === "Frame Color"
-                          ? state.colorBody
-                          : state.colorRoof
-                      }"></div>
-                      
-                      <div class="colors_picker_button" id="color-picker">
-                        Color Picker
-                      </div>
-                
-                      <div id="color-picker-container"></div>
-                     </div>
+      const colorItemsRoofSolid = colorsRoofSolid
+        .map(
+          (color) => `
+        <div class="type_interface_colors-buttons_item option" data-hex="${color.hex}">
+          <label class="type_interface_colors-buttons_label">
+            <div class="image-container" style="background-color: ${color.hex}"></div>
+            <span class="color-name">${color.name}</span>
+            <input class="type_interface_colors-buttons_option" type="radio" id="${color.id}" name="fav_language" value="${color.value}">
+          </label>
+        </div>
+      `
+        )
+        .join("");
 
-                     <p class="add-info">*additional cost</p>
-                    </div>
-                 
+      const colorItemsRoofLettice = colorsRoofLettice
+        .map(
+          (color) => `
+        <div class="type_interface_colors-buttons_item option" data-hex="${color.hex}">
+          <label class="type_interface_colors-buttons_label">
+            <div class="image-container" style="background-color: ${color.hex}"></div>
+            <span class="color-name">${color.name}</span>
+            <input class="type_interface_colors-buttons_option" type="radio" id="${color.id}" name="fav_language" value="${color.value}">
+          </label>
+        </div>
+      `
+        )
+        .join("");
 
-                  </form>
-                `);
+      const colorItemsFrame = colorsFrame
+        .map(
+          (color) => `
+        <div class="type_interface_colors-buttons_item option" data-hex="${color.hex}">
+          <label class="type_interface_colors-buttons_label">
+            <div class="image-container" style="background-color: ${color.hex}"></div>
+            <span class="color-name">${color.name}</span>
+            <input class="type_interface_colors-buttons_option" type="radio" id="${color.id}" name="fav_language" value="${color.value}">
+          </label>
+        </div>
+      `
+        )
+        .join("");
 
-      const colorSwitch = colorButtonRoof.find(`.type_interface_post-size`);
-      const standartColor = colorButtonRoof.find("#standart-color");
-      const texuredColor = colorButtonRoof.find("#textured-color");
+      const frameColorContent = $(`
+        <form class="type_interface_colors-buttons">
+          <div class="colors_container">
+            ${colorItemsFrame}
+          </div>
+        </form>
+      `);
 
-      const activeColorClass = "type_interface_colors-buttons_item--active";
+      const roofColorContent = $(`
+        <form class="type_interface_colors-buttons">
+          <div id="lettice">
+            <p class="colors_container-title" style="margin-bottom: 20px">Lattice:</p>
 
-      const activeColorTypeClass = "type_interface_post-size_item--active";
+            <div class="colors_container" >            
+              ${colorItemsRoofLettice}
+            </div>
+          </div>
+        
+          
+          <div id="solid">
+            <p class="colors_container-title" style="margin-bottom: 20px">Solid:</p>
+
+            <div class="colors_container" >
+              ${colorItemsRoofSolid}
+            </div>
+          </div>
+        
+        </form>
+      `);
+
+      const colorSwitch = roofColorContent.find(`.type_interface_post-size`);
+      const standartColor = roofColorContent.find("#standart-color");
+      const texuredColor = roofColorContent.find("#textured-color");
+
+      const activeColorClass = "active";
+
+      const activeColorTypeClass = "active";
 
       //LOGIC FOR FRAME COLOR
       if (title === "Frame Color") {
-        const mesh = GetMesh("header");
+        const header = GetMesh("head_bevel_2");
 
-        //INIT INPUT
-        colorButtonContent.find('input[type="radio"]').each(function () {
-          const backgroundColor = pergola.rgbToHex(
-            $(this)
-              .closest(".type_interface_colors-buttons_item")
-              .find(".image-container")
-              .css("background-color")
-          );
+        //#region INIT INPUT
+        frameColorContent.find(".option").each(function () {
+          const $this = $(this);
+          const hex = $(this).attr("data-hex");
 
-          const nameOfColor = $(this).val();
+          const $item = $this.closest(".type_interface_colors-buttons_item");
+          const $imgContainer = $item.find(".image-container");
 
-          if (state.colorBody === backgroundColor) {
-            $(this)
-              .closest(".type_interface_colors-buttons_item")
-              .addClass(activeColorClass);
-            $(this).prop("checked", true);
+          const bgColor = $imgContainer.css("background-color");
+          const bgImage = $imgContainer.css("background-image");
+
+          const nameOfColor = $this.find("input").val();
+
+          const extractPublicPath = (url) => {
+            const match = url.match(/\/public\/.+$/);
+            return match ? match[0] : url; // Якщо не знайдено — вертає як є
+          };
+
+          const backgroundColor = (() => {
+            const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
+            if (bgImage && bgImage !== "none" && match && match[1]) {
+              return "/" + match[1].trim().replace(/^\/+/, ""); // гарантуємо початок з одного /
+            } else {
+              return pergola.rgbToHex(bgColor); // "#ffffff"
+            }
+          })();
+
+          const normalizedStateColor = extractPublicPath(state.colorBody);
+
+          if (normalizedStateColor === backgroundColor) {
+            $item.addClass(activeColorClass);
+            $this.prop("checked", true);
             stringNameFrameColor = nameOfColor;
 
             setTimeout(() => {
-              $(this)
+              $this
                 .closest(".interface__group")
                 .find(".interface__group__head__param")
-                .text(`${nameOfColor}`);
+                .text(nameOfColor);
+
+              updateMaterialMap(header, hex);
             }, 400);
           }
 
-          if (mesh && mesh.material) {
-            mesh.material.color.set(state.colorBody);
-          }
+          pergola.update();
         });
 
-        //HANDLE INPUTS
-        colorButtonContent.find('input[type="radio"]').on("click", function () {
-          const nameOfColor = $(this).val();
-          stringNameFrameColor = nameOfColor;
+        //#endregion
 
-          const backgroundColor = pergola.rgbToHex(
-            $(this)
-              .closest(".type_interface_colors-buttons_item")
-              .find(".image-container")
-              .css("background-color")
-          );
+        //#region HANDLE ROOF INPUTS
+        frameColorContent.find(".option").on("change", function () {
+          const $this = $(this);
+          const hex = $(this).attr("data-hex");
+
+          const $item = $this.closest(".type_interface_colors-buttons_item");
+          const $imgContainer = $item.find(".image-container");
+
+          const bgColor = $imgContainer.css("background-color");
+          const bgImage = $imgContainer.css("background-image");
+
+          let backgroundColor;
+          const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
+
+          if (bgImage !== "none" && match && match[1]) {
+            backgroundColor = match[1];
+          } else {
+            backgroundColor = pergola.rgbToHex(bgColor);
+          }
 
           state.colorBody = backgroundColor;
 
-          $(this)
-            .closest(".type_interface_colors-buttons_item")
-            .addClass(activeColorClass);
+          const nameOfColor = $this.find("input").val();
+          stringNameFrameColor = nameOfColor;
 
-          $(this)
-            .closest(".type_interface_colors-buttons")
-            .find(".type_interface_colors-buttons_item")
-            .not($(this).closest(".type_interface_colors-buttons_item"))
-            .removeClass(activeColorClass);
+          frameColorContent.find(".option").removeClass(activeColorClass);
 
-          $(this)
+          $item.addClass(activeColorClass);
+
+          $this
             .closest(".interface__group")
             .find(".interface__group__head__param")
-            .text(`${nameOfColor}`);
+            .text(nameOfColor);
 
-          if (mesh && mesh.material) {
-            mesh.material.color.set(state.colorBody);
-            mesh.children.forEach((child) => {
-              if (child.material) {
-                child.material.color.set(state.colorBody);
-              }
-            });
+          updateMaterialMap(header, hex);
 
-            pergola.update();
-          }
+          pergola.update();
         });
-
-        //#region HANDLE COLOR PICKER
-        let pickr;
-
-        colorButtonContent.find("#color-picker").on("click", function () {
-          if (!pickr) {
-            pickr = Pickr.create({
-              el: "#color-picker-container", // Елемент, до якого пікер буде прив'язаний
-              theme: "classic", // Стиль пікера
-              default: state.colorBody, // Початковий колір
-
-              components: {
-                preview: false,
-                opacity: false,
-                hue: true,
-                interaction: {
-                  hex: false,
-                  rgba: false,
-                  input: false,
-                },
-              },
-            });
-
-            pickr.on("change", (color) => {
-              const selectedColor = color.toHEXA().toString();
-              state.colorBody = selectedColor;
-              stringNameFrameColor = state.colorBody;
-
-              $(this)
-                .closest(".interface__group")
-                .find(".interface__group__head__param")
-                .text(`${state.colorBody}`);
-
-              console.log(mesh);
-
-              if (mesh && mesh.material) {
-                mesh.material.color.set(state.colorBody);
-
-                mesh.children.forEach((child) => {
-                  if (child.material) {
-                    child.material.color.set(state.colorBody);
-                  }
-                });
-              }
-
-              colorButtonContent
-                .find("#color-box")
-                .css("background-color", state.colorBody);
-
-              deleteActiveClassFromContainerRadioType(
-                colorButtonContent,
-                ".type_interface_colors-buttons_item",
-                activeColorClass
-              );
-
-              pergola.update();
-            });
-          }
-
-          pickr.show();
-        });
-
         // #endregion
       }
 
       //LOGIC FOR ROOF COLOR
       if (title === "Roof Color") {
-        const mesh = GetMesh("louver_X");
+        const lettice = GetMesh("lattice_3x3_X");
+        const headerLettice = GetMesh("rafter_bevel_1");
+        const beamLettice = GetMesh("beam");
+        const backBeam = GetMesh("back_beam");
 
-        //#region INIT INPUT
-        colorButtonRoof
-          .find(".type_interface_colors-buttons_option")
-          .each(function () {
+        const solid = GetMesh("wrap_kit");
+
+        let letticeColorString = "";
+        let solidColorString = "";
+
+        //#region INIT SOLID & LATTICE INPUTS
+        const extractImagePath = (bgImage, bgColor) => {
+          const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
+          if (bgImage && bgImage !== "none" && match && match[1]) {
+            return "/" + match[1].trim().replace(/^\/+/, "");
+          } else {
+            return pergola.rgbToHex(bgColor);
+          }
+        };
+
+        // Normalize state values
+        const normalizedSolidColor = (() => {
+          const match = state.colorRoofSolid?.match(/\/public\/.+$/);
+          return match ? match[0] : state.colorRoofSolid;
+        })();
+
+        const normalizedLatticeColor = (() => {
+          const match = state.colorRoof?.match(/\/public\/.+$/);
+          return match ? match[0] : state.colorRoof;
+        })();
+
+        window.colorSolidInit = function () {
+          console.log("init SOLID color");
+
+          // #region Init Solid * MAIN INIT COLOR
+          roofColorContent.find("#solid .option").each(function () {
             const $this = $(this);
+            const hex = $(this).attr("data-hex");
+            const typeSolid = state.roofType === 1;
+            const typeLettice = !state.roofType;
+
             const $item = $this.closest(".type_interface_colors-buttons_item");
             const $imgContainer = $item.find(".image-container");
 
             const bgColor = $imgContainer.css("background-color");
             const bgImage = $imgContainer.css("background-image");
 
-            const nameOfColor = $this.val();
+            const inputColorValue = extractImagePath(bgImage, bgColor);
+            const nameOfColor = $this.find("input").val();
 
-            const extractPublicPath = (url) => {
-              const match = url.match(/\/public\/.+$/);
-              return match ? match[0] : url; // Якщо не знайдено — вертає як є
-            };
-
-            const backgroundColor = (() => {
-              const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
-              if (bgImage && bgImage !== "none" && match && match[1]) {
-                return "/" + match[1].trim().replace(/^\/+/, ""); // гарантуємо початок з одного /
-              } else {
-                return pergola.rgbToHex(bgColor); // "#ffffff"
-              }
-            })();
-
-            const normalizedStateColor = extractPublicPath(state.colorRoof);
-
-            // DEBUG
-            console.log("COMPARE INIT", {
-              fromState: normalizedStateColor,
-              fromInput: backgroundColor,
-            });
-
-            if (normalizedStateColor === backgroundColor) {
-              // Match!
-            }
-
-            if (normalizedStateColor === backgroundColor) {
+            if (inputColorValue === normalizedSolidColor) {
               $item.addClass(activeColorClass);
-              $this.prop("checked", true);
-              stringNameRoofColor = nameOfColor;
+              $this.find("input").prop("checked", true);
+              stringNameRoofSolidColor = nameOfColor;
+              solidColorString = nameOfColor;
+
+              //MAIN INIT COLOR
+              setTimeout(() => {
+                const resultColorRoof = typeSolid
+                  ? solidColorString
+                  : typeLettice
+                  ? letticeColorString
+                  : `${letticeColorString},${solidColorString || ""}`;
+
+                $this
+                  .closest(".interface__group")
+                  .find(".interface__group__head__param")
+                  .text(resultColorRoof);
+
+                updateMaterialMap(solid, hex);
+              }, 100);
+            }
+          });
+          // #endregion
+        };
+
+        window.colorLattice = function () {
+          console.log("init LATTICE color");
+
+          // #region Init Lattice
+          roofColorContent.find("#lettice .option").each(function () {
+            const $this = $(this);
+            const hex = $(this).attr("data-hex");
+            const typeLettice = !state.roofType;
+
+            const $item = $this.closest(".type_interface_colors-buttons_item");
+            const $imgContainer = $item.find(".image-container");
+
+            const bgColor = $imgContainer.css("background-color");
+            const bgImage = $imgContainer.css("background-image");
+
+            const inputColorValue = extractImagePath(bgImage, bgColor);
+            const nameOfColor = $this.find("input").val();
+
+            if (inputColorValue === normalizedLatticeColor) {
+              $item.addClass(activeColorClass);
+              $this.find("input").prop("checked", true);
+              stringNameRoofLetticeColor = nameOfColor;
+              letticeColorString = nameOfColor;
+
+              const resultColorRoof = typeLettice
+                ? letticeColorString
+                : `${letticeColorString},${solidColorString || ""}`;
+
+              updateMaterialMap(lettice, hex);
+              updateMaterialMap(headerLettice, hex);
+              updateMaterialMap(beamLettice, hex);
+              updateMaterialMap(backBeam, hex);
 
               setTimeout(() => {
                 $this
                   .closest(".interface__group")
                   .find(".interface__group__head__param")
-                  .text(nameOfColor);
-
-                console.log("URL COLOR INIT");
-              }, 400);
+                  .text(resultColorRoof);
+              }, 0);
             }
-
-            updateMaterialMap(mesh);
-
-            pergola.update();
           });
+          // #endrigion
+        };
 
-        //#endregion
+        window.colorSolidInit();
+        window.colorLattice();
 
-        //#region HANDLE INPUTS
-        colorButtonRoof
-          .find(".type_interface_colors-buttons_option")
-          .on("change", function () {
-            const $this = $(this);
-            const $item = $this.closest(".type_interface_colors-buttons_item");
-            const $imgContainer = $item.find(".image-container");
+        //#region HANDLE SOLID INPUTS
+        roofColorContent.find("#solid .option").on("change", function () {
+          console.log("CLICK ON COLOR SOLID");
 
-            const bgColor = $imgContainer.css("background-color");
-            const bgImage = $imgContainer.css("background-image");
+          const $this = $(this);
+          const hex = $(this).attr("data-hex");
+          const $item = $this.closest(".type_interface_colors-buttons_item");
+          const $imgContainer = $item.find(".image-container");
+          const typeSolid = state.roofType === 1;
 
-            let backgroundColor;
-            const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
+          const bgColor = $imgContainer.css("background-color");
+          const bgImage = $imgContainer.css("background-image");
 
-            if (bgImage !== "none" && match && match[1]) {
-              backgroundColor = match[1]; // Це шлях
-            } else {
-              backgroundColor = pergola.rgbToHex(bgColor); // Це HEX
-            }
+          let backgroundColor;
+          const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
 
-            // Записуємо URL або HEX в state
-            state.colorRoof = backgroundColor;
-
-            const nameOfColor = $this.val(); // Завжди показуємо значення value
-            stringNameRoofColor = nameOfColor;
-
-            // Додаємо активний клас
-            $item.addClass(activeColorClass);
-            $this
-              .closest(".type_interface_colors-buttons")
-              .find(".type_interface_colors-buttons_item")
-              .not($item)
-              .removeClass(activeColorClass);
-
-            // Вивід у header
-            $this
-              .closest(".interface__group")
-              .find(".interface__group__head__param")
-              .text(nameOfColor);
-
-            // Оновлення матеріалу
-            updateMaterialMap(mesh);
-
-            pergola.update();
-          });
-
-        // #endregion
-
-        //#region HANDLE COLOR PICKER
-        let pickr;
-
-        colorButtonRoof.find("#color-picker").on("click", function () {
-          const $button = $(this);
-          const $interfaceGroup = $button.closest(".interface__group");
-
-          if (!pickr) {
-            pickr = Pickr.create({
-              el: "#color-picker-container",
-              theme: "classic",
-              default: state.colorRoof,
-
-              components: {
-                preview: false,
-                opacity: false,
-                hue: true,
-                interaction: {
-                  hex: true,
-                  rgba: false,
-                  input: true,
-                  clear: false,
-                  save: true,
-                },
-              },
-            });
-
-            pickr.on("change", (color) => {
-              const selectedColor = color.toHEXA().toString();
-              state.colorRoof = selectedColor;
-              stringNameRoofColor = selectedColor;
-
-              //  title
-              $interfaceGroup
-                .find(".interface__group__head__param")
-                .text(selectedColor);
-
-              // Update input color
-              colorButtonRoof
-                .find("#color-box")
-                .css("background-color", selectedColor);
-
-              // remove active class
-              colorButtonRoof
-                .find(".type_interface_colors-buttons_item")
-                .removeClass(activeColorClass);
-              colorButtonRoof
-                .find(".type_interface_colors-buttons_option")
-                .prop("checked", false);
-
-              // update mesh
-              updateMaterialMap(mesh);
-
-              pergola.update();
-            });
+          if (bgImage !== "none" && match && match[1]) {
+            backgroundColor = match[1];
+          } else {
+            backgroundColor = pergola.rgbToHex(bgColor);
           }
 
-          // Відкриваємо пікер
-          pickr.show();
+          state.colorRoofSolid = backgroundColor;
+
+          const nameOfColor = $this.find("input").val();
+          stringNameRoofSolidColor = nameOfColor;
+
+          solidColorString = nameOfColor;
+          const resultColorRoof = typeSolid
+            ? solidColorString
+            : letticeColorString + "," + solidColorString;
+
+          roofColorContent.find("#solid .option").removeClass(activeColorClass);
+
+          $item.addClass(activeColorClass);
+
+          $this
+            .closest(".interface__group")
+            .find(".interface__group__head__param")
+            .text(resultColorRoof);
+
+          console.log(resultColorRoof, "HEADER CLICK");
+          updateMaterialMap(solid, hex);
+
+          pergola.update();
+        });
+        // #endregion
+
+        //#region HANDLE LATTICE INPUTS
+        roofColorContent.find("#lettice .option").on("change", function () {
+          console.log("CLICK ON COLOR LATTICE");
+
+          const $this = $(this);
+          const hex = $(this).attr("data-hex");
+          const typeLettice = !state.roofType;
+
+          const $item = $this.closest(".type_interface_colors-buttons_item");
+          const $imgContainer = $item.find(".image-container");
+
+          const bgColor = $imgContainer.css("background-color");
+          const bgImage = $imgContainer.css("background-image");
+
+          let backgroundColor;
+          const match = bgImage.match(/url\(["']?(.*?)["']?\)/);
+
+          if (bgImage !== "none" && match && match[1]) {
+            backgroundColor = match[1]; // Це шлях
+          } else {
+            backgroundColor = pergola.rgbToHex(bgColor); // Це HEX
+          }
+
+          // Записуємо URL або HEX в state
+          state.colorRoof = backgroundColor;
+
+          const nameOfColor = $this.find("input").val(); // Завжди показуємо значення value
+          stringNameRoofLetticeColor = nameOfColor;
+          letticeColorString = nameOfColor;
+          const resultColorRoof = typeLettice
+            ? letticeColorString
+            : letticeColorString + "," + solidColorString;
+
+          roofColorContent
+            .find("#lettice .option")
+            .removeClass(activeColorClass);
+
+          // Додаємо активний клас
+          $item.addClass(activeColorClass);
+
+          // Вивід у header
+          $this
+            .closest(".interface__group")
+            .find(".interface__group__head__param")
+            .text(resultColorRoof);
+
+          // Оновлення матеріалу
+          updateMaterialMap(lettice, hex);
+          updateMaterialMap(headerLettice, hex);
+          updateMaterialMap(beamLettice, hex);
+          updateMaterialMap(backBeam, hex);
+
+          pergola.update();
         });
         // #endregion
 
         // #region COLOR TYPE
-        // console.log(colorSwitch);
-
         colorSwitch.find('input[type="radio"]').each(function () {
           const $input = $(this);
           const id = +$input.attr("id");
 
           //INIT
-          console.log($input, id);
-
           $(this).removeClass(activeColorTypeClass);
 
           console.log();
@@ -1292,12 +1523,12 @@ export function interfaceGroupInputsComponent(
             standartColor.show();
             texuredColor.hide();
 
-            colorButtonRoof.find(".color-bottom").show();
+            roofColorContent.find(".color-bottom").show();
           } else {
             texuredColor.show();
             standartColor.hide();
 
-            colorButtonRoof.find(".color-bottom").hide();
+            roofColorContent.find(".color-bottom").hide();
           }
 
           // console.log($(this));
@@ -1312,7 +1543,7 @@ export function interfaceGroupInputsComponent(
                 $(this).parent().removeClass(activeColorTypeClass);
               });
 
-              colorButtonRoof.find(".colors_container");
+              roofColorContent.find(".colors_container");
               $(this).addClass(activeColorTypeClass);
 
               standartColor.hide();
@@ -1322,12 +1553,12 @@ export function interfaceGroupInputsComponent(
                 standartColor.show();
                 texuredColor.hide();
 
-                colorButtonRoof.find(".color-bottom").show();
+                roofColorContent.find(".color-bottom").show();
               } else {
                 texuredColor.show();
                 standartColor.hide();
 
-                colorButtonRoof.find(".color-bottom").hide();
+                roofColorContent.find(".color-bottom").hide();
               }
             });
         });
@@ -1335,7 +1566,7 @@ export function interfaceGroupInputsComponent(
         // #endregion
       }
 
-      return title === "Roof Color" ? colorButtonRoof : colorButtonContent;
+      return title === "Roof Color" ? roofColorContent : frameColorContent;
 
     case typesInputs.electronic:
       const electronicContent = $(`
@@ -1547,39 +1778,103 @@ export function interfaceGroupInputsComponent(
 
       return electronicContent;
 
+    case typesInputs.endCuts:
+      const endCutsContent = $(`
+                  <form class="type_interface_radio-model">
+                    <div class="type_interface_radio-model_item option" id="1">
+                      <input data-value="0" class="type_interface_radio-model_option ends-cut--bevel" 
+                          type="radio" name="fav_language" value="${stringEndCuts[0]}"
+                          style="height: 80px"
+                          >
+                      <label class="type_interface_radio-model_label" for="shade">${stringEndCuts[0]}</label>
+                    </div>
+  
+                    <div class="type_interface_radio-model_item option" id="2">
+                      <input data-value="1" class="type_interface_radio-model_option ends-cut--mitre" 
+                          type="radio" name="fav_language" value="${stringEndCuts[1]}"
+                          style="height: 80px"
+                          >
+                      <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[1]}</label>
+                    </div>
+  
+                    <div class="type_interface_radio-model_item option" id="3">
+                      <input data-value="1" class="type_interface_radio-model_option ends-cut--corbel" 
+                          type="radio" name="fav_language" value="${stringEndCuts[2]}"
+                          style="height: 80px"
+                          >
+                      <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[2]}</label>
+                    </div>
+
+                    <div class="type_interface_radio-model_item option" id="4">
+                      <input data-value="1" class="type_interface_radio-model_option ends-cut--scallop" 
+                          type="radio" name="fav_language" value="${stringEndCuts[3]}"
+                          style="height: 80px"
+                          >
+                      <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[3]}</label>
+                    </div>
+                  </form>`);
+
+      // //INIT MODEL
+      endCutsContent.find(".option").each(function () {
+        const id = +$(this).attr("id");
+
+        if (id === state.endCuts) {
+          $(this).addClass("active");
+
+          setTimeout(() => {
+            $(this)
+              .closest(".interface__group")
+              .find(".interface__group__head__param")
+              .text($(this).find("input").val());
+          }, 0);
+        }
+      });
+
+      //#region HANDLE MODEL
+      endCutsContent.find(".option").on("click", function () {
+        const parentItem = $(this).closest(".type_interface_radio-model_item");
+        const id = +$(this).attr("id");
+
+        state.endCuts = id;
+
+        endCutsContent.find(".option").removeClass("active");
+
+        parentItem.addClass("active");
+
+        $(parentItem)
+          .closest(".interface__group")
+          .find(".interface__group__head__param")
+          .text($(this).find("input").val());
+
+        pergola.update();
+      });
+      //#endregion
+
+      return endCutsContent;
+
     case typesInputs.subSystem:
       const subSystemContent = $(`
           <form class="type_interface_electronic" id="last-group">
             <div class="type_interface_electronic_item option" id="${pergolaConst.option.LEDRampLight}">
               <label class="type_interface_electronic_label">
                 <div class="image-container">
-                  <img src="public/img/led-ramp-light.png" alt="${pergolaConst.optionNameString.LEDRampLight}" class="color-image">
+                  <img src="public/img/light.png" alt="${pergolaConst.optionNameString.LEDRampLight}" class="color-image">
                 </div>
                 <span class="electronic-name">${pergolaConst.optionNameString.LEDRampLight}</span>
                 <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.optionNameString.LEDRampLight}">
               </label>
             </div>
       
-            <div class="type_interface_electronic_item option" id="${pergolaConst.option.LEDRecessed}">
+            <div class="type_interface_electronic_item option" id="${pergolaConst.option.fans}">
               <label class="type_interface_electronic_label">
                 <div class="image-container">
-                  <img src="public/img/led-recessed.png" alt="${pergolaConst.optionNameString.LEDRecessed}" class="color-image">
+                  <img src="public/img/fan.png" alt="${pergolaConst.optionNameString.fans}" class="color-image">
                 </div>
-                <span class="electronic-name">${pergolaConst.optionNameString.LEDRecessed}</span>
-                <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.optionNameString.LEDRecessed}">
+                <span class="electronic-name">${pergolaConst.optionNameString.fans}</span>
+                <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.optionNameString.fans}">
               </label>
             </div>
-      
-            <div class="type_interface_electronic_item option" id="${pergolaConst.option.LEDStrip}">
-              <label class="type_interface_electronic_label">
-                <div class="image-container">
-                  <img src="public/img/led-strip.png" alt="${pergolaConst.optionNameString.LEDStrip}" class="color-image">
-                </div>
-                <span class="electronic-name">${pergolaConst.optionNameString.LEDStrip}</span>
-                <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.optionNameString.LEDStrip}">
-              </label>
-            </div>
-      
+
             <div class="type_interface_electronic_item option" id="${pergolaConst.systemType.privacyWall}">
               <label class="type_interface_electronic_label">
                 <div class="image-container">
@@ -1598,16 +1893,6 @@ export function interfaceGroupInputsComponent(
                 </div>
                 <span class="electronic-name">${pergolaConst.systemNameString.autoShade}</span>
                 <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.systemNameString.autoShade}">
-              </label>
-            </div>
-      
-            <div class="type_interface_electronic_item option" id="${pergolaConst.option.fans}">
-              <label class="type_interface_electronic_label">
-                <div class="image-container">
-                  <img src="public/img/fan.png" alt="${pergolaConst.optionNameString.fans}" class="color-image">
-                </div>
-                <span class="electronic-name">${pergolaConst.optionNameString.fans}</span>
-                <input class="type_interface_electronic_option" type="radio" id="TexturedBlack" name="fav_language" value="${pergolaConst.optionNameString.fans}">
               </label>
             </div>
           </form>
@@ -1817,159 +2102,6 @@ export function interfaceGroupInputsComponent(
       //#endregion
 
       return roofContent;
-
-    // case typesInputs.typePergola:
-    //   const roofButtonContent = $(`
-    //         <form class="type_interface_roof-buttons">
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/branch-1.svg" alt="Branch" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Branch</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Branch" name="fav_roof" value="Branch">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/breeze.svg" alt="Breeze" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Breeze</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Breeze" name="fav_roof" value="Breeze">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/dash.svg" alt="Dash" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Dash</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Dash" name="fav_roof" value="Dash">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/hexx.svg" alt="Hexx" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Hexx</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Hexx" name="fav_roof" value="Hexx">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/horizon.svg" alt="Horizon" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Horizon</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Horizon" name="fav_roof" value="Horizon">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/maui.svg" alt="Maui" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Maui</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Maui" name="fav_roof" value="Maui">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/moderna.svg" alt="Moderna" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Moderna</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Moderna" name="fav_roof" value="Moderna">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/rain.svg" alt="Rain" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Rain</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Rain" name="fav_roof" value="Rain">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/river-rock.svg" alt="River Rock" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">River Rock</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="River Rock" name="fav_roof" value="River Rock">
-    //                 </label>
-    //             </div>
-
-    //             <div class="type_interface_roof-buttons_item option">
-    //                 <label class="type_interface_roof-buttons_label">
-    //                     <div class="image-container">
-    //                         <img src="public/img/roof-types-icon/solid.svg" alt="Solid" class="roof-image">
-    //                     </div>
-
-    //                     <span class="roof-name">Solid</span>
-    //                     <input class="type_interface_roof-buttons_option" type="radio" id="Solid" name="fav_roof" value="Solid">
-    //                 </label>
-    //             </div>
-    //         </form>
-    //     `);
-    //   const activeClassRoof = "type_interface_roof-buttons_item--active";
-    //   const inputButtons = roofButtonContent.find(
-    //     ".type_interface_roof-buttons_item"
-    //   );
-
-    //   function initializeActiveClass() {
-    //     const selectedValue = state.fans;
-
-    //     if (selectedValue) {
-    //       const selectedButton = inputButtons.filter(function () {
-    //         return $(this).find("input").val() === selectedValue;
-    //       });
-
-    //       if (selectedButton.length > 0) {
-    //         selectedButton.addClass(activeClassRoof);
-    //       }
-    //     }
-    //   }
-
-    //   initializeActiveClass();
-
-    //   //#region HANDLE
-    //   inputButtons.on("click", function () {
-    //     state.fans = $(this).find("input").val();
-
-    //     inputButtons.removeClass(activeClassRoof);
-
-    //     $(this).addClass(activeClassRoof);
-
-    //     changeTextureTop();
-    //     $(this)
-    //       .closest(".interface__group")
-    //       .find(".interface__group__head__param")
-    //       .text(`${state.fans}`);
-    //   });
-    //   //#endregion
-
-    //   return roofButtonContent;
 
     default:
       return `< div > NON HTML</div > `;
