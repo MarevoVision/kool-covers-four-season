@@ -1,5 +1,6 @@
 import $ from "jquery";
 import {
+  pergola,
   pergolaConst,
   theModel,
   toggleLoad,
@@ -51,6 +52,16 @@ export function countVisibleObjectsByName(
   });
 
   return count;
+}
+
+export function countActiveSystemsInPergola(typeSystem) {
+  const count = pergola.span.objects
+    .filter((span) => span.isSystemSet)
+    .filter((span) =>
+      span.systems.some((system) => system.active && system.type === typeSystem)
+    );
+
+  return count.length;
 }
 
 export function summaryPageComponent(container) {
@@ -379,7 +390,7 @@ export function summaryPageComponent(container) {
         <p class="sum__page__main-list__title">Extra Options</p>
 
         <div class="sum__page__main-list__info"> 
-          <h3 class="sum__page__main-list__info__title">LED Ramp Light</h3>
+          <h3 class="sum__page__main-list__info__title">LED Light</h3>
           <div class="sum__page__main-list__info__param">${
             state.electro.has(pergolaConst.optionNameString.LEDRampLight)
               ? "Yes"
@@ -397,27 +408,16 @@ export function summaryPageComponent(container) {
          <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Privacy Wall</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(model, "privacy_wall_frame", true) +
-              countVisibleObjectsByName(
-                model,
-                "privacy_wall_frame_side",
-                true
-              ) || "No"
+            countActiveSystemsInPergola(pergolaConst.systemType.privacyWall) ||
+            "No"
           }</div>
         </div>
 
     <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Automated Screens</h3>
           <div class="sum__page__main-list__info__param">${
-            state.subSystem.has(pergolaConst.systemNameString.autoShade)
-              ? countVisibleObjectsByName(theModel, "zip_shade", true, true) +
-                countVisibleObjectsByName(
-                  theModel,
-                  "zip_shade_side",
-                  true,
-                  true
-                )
-              : "No"
+            countActiveSystemsInPergola(pergolaConst.systemType.autoShade) ||
+            "No"
           }</div>
         </div>
       </li>

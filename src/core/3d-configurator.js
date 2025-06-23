@@ -594,8 +594,6 @@ export async function toggleBackWall(toggle) {
       }
     });
   });
-
-  pergola.checkSystemsInScene();
   //  #endregion
 }
 
@@ -610,8 +608,6 @@ export async function toggleLeftWall(toggle) {
       }
     });
   });
-
-  pergola.checkSystemsInScene();
   //  #endregion
 }
 
@@ -626,8 +622,6 @@ export async function toggleRightWall(toggle) {
       }
     });
   });
-
-  pergola.checkSystemsInScene();
   //  #endregion
 }
 
@@ -9945,7 +9939,7 @@ export class PergolaObject {
         if (state.leftWall) backBeamL.visible = true;
         if (state.rightWall) backBeamR.visible = true;
 
-        ChangeGlobalMorph("on_roof", 0.1);
+        // ChangeGlobalMorph("on_roof", 0.1);
 
         if (!backSpanSystem) {
           $("#back").addClass("active");
@@ -10364,14 +10358,14 @@ export class PergolaObject {
         offsetNegativeSide = 0;
         offsetNegative = 0;
         offsetSide = 0;
-        offset = state.roofType === 1 && !state.beamSize ? 0 : 0;
+        offset = state.roofType === 1 && !state.beamSize ? 0 : 0.05;
         break;
 
       case 9:
         offsetNegativeSide = 0;
         offsetNegative = 0;
         offsetSide = 0.14;
-        offset = state.roofType === 1 && !state.beamSize ? 0.14 : 0.14;
+        offset = state.roofType === 1 && !state.beamSize ? 0.14 : 0.18;
         break;
 
       case 10:
@@ -10379,7 +10373,7 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.27;
-        offset = state.roofType === 1 && !state.beamSize ? 0.28 : 0.28;
+        offset = state.roofType === 1 && !state.beamSize ? 0.28 : 0.33;
 
         break;
 
@@ -10388,7 +10382,7 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.39;
-        offset = state.roofType === 1 && !state.beamSize ? 0.4 : 0.4;
+        offset = state.roofType === 1 && !state.beamSize ? 0.4 : 0.48;
         break;
 
       case 12:
@@ -10396,12 +10390,12 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.52;
-        offset = state.roofType === 1 && !state.beamSize ? 0.58 : 0.59;
+        offset = state.roofType === 1 && !state.beamSize ? 0.58 : 0.62;
 
         break;
     }
 
-    const offsetPrepered = state.directionRoof ? offset * 1.1 : offset;
+    const offsetPrepered = state.directionRoof ? offset + 0.05 : offset;
 
     let openZip = this.interpolateValue(
       +state.zipInput,
@@ -10469,7 +10463,7 @@ export class PergolaObject {
       6.09575
     );
 
-    const offsetColumn = !state.postType ? -0.07 : 0.1;
+    const offsetColumn = 0;
 
     const targetValueWidthPrivacyWall = ConvertMorphValue(
       span_width + offsetColumn,

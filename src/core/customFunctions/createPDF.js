@@ -406,12 +406,9 @@ async function convertToBlackAndWhite(imageBytes) {
 
 const pdf_logo_url = "public/img/logoPDf.png";
 const pdf_water_mark_url = "public/img/water-mark.png";
-const pdf_icon_web_url =
-  "https://royalcovers.com/wp-content/uploads/2025/03/web.png";
-const pdf_icon_phone_url =
-  "https://royalcovers.com/wp-content/uploads/2025/03/phone.png";
-const pdf_icon_email_url =
-  "https://royalcovers.com/wp-content/uploads/2025/03/mail.png";
+const pdf_icon_web_url = "public/img/web.png";
+const pdf_icon_phone_url = "public/img/phone.png";
+const pdf_icon_email_url = "public/img/mail.png";
 
 export async function createPDF(opt = "open") {
   await CreateImageList();
@@ -474,8 +471,8 @@ export async function createPDF(opt = "open") {
               {
                 image: phoneIconImage,
                 margin: [0, 25, -30, 30],
-                width: 8,
-                height: 8,
+                width: 14,
+                height: 14,
                 alignment: "center",
                 style: "footer",
               },
@@ -488,35 +485,35 @@ export async function createPDF(opt = "open") {
               },
               { text: "" },
               {
-                image: emailIconImage,
-                width: 8,
-                height: 8,
-                alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â½ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¸
-                margin: [0, 25, 0, 30],
-              },
-              {
-                text: uiPdfEmail,
-                link: `mailto:${uiPdfEmail}`,
-                margin: [0, 25, 0, 30],
-                alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
-                style: "footer",
-                color: footerColorWhite, // ÃƒÂÃ¢â‚¬ËœÃƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚Â»ÃƒÂÃ‚Â¸ÃƒÂÃ‚Â¹ ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â»Ãƒâ€˜Ã¢â‚¬â€œÃƒâ€˜Ã¢â€šÂ¬ Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
-              },
-              { text: "" },
-              {
                 image: websiteIconImage,
-                width: 8,
-                height: 8,
+                width: 14,
+                height: 14,
                 alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â½ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¸
                 margin: [0, 25, 0, 30],
               },
               {
                 text: uiPdfWeb,
                 link: uiPdfWeb,
+                margin: [0, 25, 0, 30],
+                alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
+                style: "footer",
+                color: footerColorWhite,
+              },
+              { text: "" },
+              {
+                image: emailIconImage,
+                width: 14,
+                height: 14,
+                alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â½ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¸
+                margin: [0, 25, 0, 30],
+              },
+              {
+                text: uiPdfEmail,
+                link: `mailto:${uiPdfEmail}`,
                 margin: [0, 25, 30, 30],
                 alignment: "center", // ÃƒÂÃ‚Â¦ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â²ÃƒÂÃ‚Â°ÃƒÂÃ‚Â½ÃƒÂÃ‚Â½Ãƒâ€˜Ã‚Â Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
                 style: "footer",
-                color: footerColorWhite, // ÃƒÂÃ¢â‚¬ËœÃƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚Â»ÃƒÂÃ‚Â¸ÃƒÂÃ‚Â¹ ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â»Ãƒâ€˜Ã¢â‚¬â€œÃƒâ€˜Ã¢â€šÂ¬ Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
+                color: "#E30000", // ÃƒÂÃ¢â‚¬ËœÃƒâ€˜Ã¢â‚¬â€œÃƒÂÃ‚Â»ÃƒÂÃ‚Â¸ÃƒÂÃ‚Â¹ ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾ÃƒÂÃ‚Â»Ãƒâ€˜Ã¢â‚¬â€œÃƒâ€˜Ã¢â€šÂ¬ Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚ÂºÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã†â€™
               },
             ],
           ],

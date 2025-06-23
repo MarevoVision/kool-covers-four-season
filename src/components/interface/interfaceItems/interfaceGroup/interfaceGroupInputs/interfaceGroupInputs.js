@@ -376,6 +376,7 @@ export function interfaceGroupInputsComponent(
 
           if (typeLattice) {
             showIcon(11);
+            state.beamSize = 1;
           }
 
           if (typeSolid) {
@@ -388,6 +389,7 @@ export function interfaceGroupInputsComponent(
             showIcon(12);
             state.rain = false;
             state.directionRoof = false;
+            state.beamSize = 1;
           }
 
           if (state.roofType === type) {
@@ -429,6 +431,8 @@ export function interfaceGroupInputsComponent(
           if (typeLattice) {
             showIcon(11);
             state.thickness = 0;
+            state.beamSize = 1;
+
             $("#solid").hide();
             $("#lettice .option")
               .eq($("#lettice .option").length - 1)
@@ -448,6 +452,8 @@ export function interfaceGroupInputsComponent(
           if (typeCombo) {
             showIcon(12);
             state.thickness = 0;
+            state.beamSize = 1;
+
             state.rain = false;
             $("#solid .option")
               .eq($("#lettice .option").length)
@@ -635,6 +641,8 @@ export function interfaceGroupInputsComponent(
         toggleBackWall(state.backWall);
         toggleClass($(this), state.backWall);
 
+        pergola.checkSystemsInScene();
+
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
       });
@@ -661,6 +669,8 @@ export function interfaceGroupInputsComponent(
         toggleLeftWall(state.leftWall);
         toggleClass($(this), state.leftWall);
 
+        pergola.checkSystemsInScene();
+
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
       });
@@ -686,6 +696,8 @@ export function interfaceGroupInputsComponent(
 
         toggleRightWall(state.rightWall);
         toggleClass($(this), state.rightWall);
+
+        pergola.checkSystemsInScene();
 
         updateTextParam(state, this);
         // setAllHotspotsVisibility(false);
