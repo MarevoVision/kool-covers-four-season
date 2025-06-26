@@ -171,7 +171,7 @@ export function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
              <div class="sum__page__main-list__info__param">${
-               state.overhang
+               state.overhang - 4
              }"</div>
            </div>
 
@@ -227,7 +227,7 @@ export function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
              <div class="sum__page__main-list__info__param">${
-               state.overhang
+               state.overhang - 4
              }"</div>
            </div>
 
@@ -283,7 +283,7 @@ export function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Roof Overhang</h3>
              <div class="sum__page__main-list__info__param">${
-               state.overhang
+               state.overhang - 4
              }"</div>
            </div>
 
@@ -401,7 +401,9 @@ export function summaryPageComponent(container) {
         <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Fan</h3>
           <div class="sum__page__main-list__info__param">${
-            countVisibleObjectsByName(model, "fan", true) || "No"
+            state.electro.has(pergolaConst.optionNameString.LEDRampLight)
+              ? countVisibleObjectsByName(model, "fan", true, true) / 2 || "No"
+              : countVisibleObjectsByName(model, "fan", true, true) || "No"
           }</div>
         </div>
 
@@ -413,7 +415,7 @@ export function summaryPageComponent(container) {
           }</div>
         </div>
 
-    <div class="sum__page__main-list__info"> 
+        <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Automated Screens</h3>
           <div class="sum__page__main-list__info__param">${
             countActiveSystemsInPergola(pergolaConst.systemType.autoShade) ||

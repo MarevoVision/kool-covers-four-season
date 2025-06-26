@@ -82,6 +82,7 @@ function arrayBufferToBase64(buffer) {
   const binary = Array.from(buffer)
     .map((byte) => String.fromCharCode(byte))
     .join("");
+
   return window.btoa(binary);
 }
 
@@ -167,16 +168,8 @@ export function decodeURLToState(url) {
 
 export function changeURL() {
   const url = encodeStateToURL(state);
-  const decode = decodeURLToState(url);
-
-  Object.assign(state, decode);
-
-  log && console.log(state);
-
   const newUrl = `${window.location.origin}${window.location.pathname}?${splitState}${url}`;
   history.pushState({}, "", newUrl);
-
-  console.log(state);
 }
 
 export async function initStateFromUrl() {
@@ -187,13 +180,15 @@ export async function initStateFromUrl() {
     try {
       const decodedState = decodeURLToState(stateParam);
 
-      Object.assign(state, decodedState);
+      for (const key in decodedState) {
+        state[key] = decodedState[key];
+      }
 
-      log && console.log("Стан завантажено з URL:", state);
+      // log && console.log("Стан завантажено з URL:", state);
     } catch (error) {
-      log && console.error("Помилка при декодуванні стану з URL:", error);
+      // log && console.error("Помилка при декодуванні стану з URL:", error);
     }
   } else {
-    log && console.log("Використовуємо дефолтний стан:", state);
+    // log && console.log("Використовуємо дефолтний стан:", state);
   }
 }

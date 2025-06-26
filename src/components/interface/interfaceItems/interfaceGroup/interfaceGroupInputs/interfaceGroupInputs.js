@@ -366,8 +366,6 @@ export function interfaceGroupInputsComponent(
           const typeSolid = state.roofType === 1;
           const typeCombo = state.roofType === 2;
 
-          // jQuery("#Bronze").closest("label").hide();
-
           hideIcon(10);
           hideIcon(11);
           hideIcon(12);
@@ -419,6 +417,11 @@ export function interfaceGroupInputsComponent(
           const typeSolid = state.roofType === 1;
           const typeCombo = state.roofType === 2;
 
+          $("#wrap-kit").removeClass("active");
+          state.wrapKit = false;
+
+          $("#tails").removeClass("active");
+          state.tails = false;
           state.directionRoof = false;
 
           hideIcon(10);

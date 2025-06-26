@@ -617,7 +617,7 @@ export function portalComponent() {
                   <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
 
                   <ul class="radio__container" style="justify-content: space-between;">
-                    <li class="radio__container__item" id="18">
+                    <li class="radio__container__item" id="16">
                       <div class="radio__container__item__cyrcle"></div>
 
                       <span class="radio__container__item__text" >12"</span>
@@ -635,7 +635,7 @@ export function portalComponent() {
                        <span class="radio__container__item__text" >20"</span>
                     </li>
 
-                     <li class="radio__container__item" id="27">
+                     <li class="radio__container__item" id="28">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">24"</span>
@@ -754,7 +754,7 @@ export function portalComponent() {
                   <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
 
                   <ul class="radio__container" style="justify-content: space-between;">
-                    <li class="radio__container__item" id="18">
+                    <li class="radio__container__item" id="16">
                       <div class="radio__container__item__cyrcle"></div>
 
                       <span class="radio__container__item__text" >12"</span>
@@ -772,7 +772,7 @@ export function portalComponent() {
                        <span class="radio__container__item__text" >20"</span>
                     </li>
 
-                     <li class="radio__container__item" id="27">
+                     <li class="radio__container__item" id="28">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">24"</span>
@@ -888,7 +888,7 @@ export function portalComponent() {
                     <div class="canvas_menu__title" style="width: fit-content; margin-bottom: 10px">Roof Overhang:</div>
   
                     <ul class="radio__container" style="justify-content: space-between;">
-                      <li class="radio__container__item" id="18">
+                      <li class="radio__container__item" id="16">
                         <div class="radio__container__item__cyrcle"></div>
   
                         <span class="radio__container__item__text" >12"</span>
@@ -1932,6 +1932,8 @@ export function portalComponent() {
         return (className.match(/sun__icon-active--\S+/g) || []).join(" ");
       });
     });
+
+    pergola.checkSystemsInScene();
 
     pergola.update();
   });

@@ -20,51 +20,46 @@ export let pdfImg = { img: "" };
 export let pdfImgTop = { img: "" };
 
 //#region URL AND STATE
-let isBatchUpdating = false;
-const delay = 100;
+let timer;
 
 function triggerCallback() {
-  if (isBatchUpdating) {
-    return;
-  }
+  clearTimeout(timer);
 
-  isBatchUpdating = true;
-
-  setTimeout(() => {
+  timer = setTimeout(() => {
     changeURL();
-    isBatchUpdating = false;
-  }, delay);
+  }, 0); // debounce
 }
 
+const proxyCache = new WeakMap();
+const setProxyCache = new WeakMap();
+const arrayProxyCache = new WeakMap();
+
 function createNestedProxy(target) {
-  return new Proxy(target, {
+  if (proxyCache.has(target)) return proxyCache.get(target);
+  const proxy = new Proxy(target, {
     set(target, key, value) {
       target[key] = value;
-
       triggerCallback();
-
       return true;
     },
-
     get(target, key) {
       const value = target[key];
       if (typeof value === "object" && value !== null) {
-        if (value instanceof Set) {
-          return createSetProxy(value); // STATE PARAM === SET
-        } else if (Array.isArray(value)) {
-          return createArrayProxy(value); // STATE PARAM === ARRAY
-        } else {
-          return createNestedProxy(value); // STATE PARAM === ...
-        }
+        if (value instanceof Set) return createSetProxy(value);
+        if (Array.isArray(value)) return createArrayProxy(value);
+        return createNestedProxy(value);
       }
       return value;
     },
   });
+  proxyCache.set(target, proxy);
+  return proxy;
 }
 
 function createSetProxy(set) {
-  //DESCRIPTION OWN METHOD FOR PROXY COVER
-  return new Proxy(set, {
+  if (setProxyCache.has(set)) return setProxyCache.get(set);
+
+  const proxy = new Proxy(set, {
     get(target, prop) {
       if (prop === "add") {
         return (value) => {
@@ -112,17 +107,9 @@ function createSetProxy(set) {
         };
       }
 
-      // if (prop === "values") {
-      //   return () => {
-      //     const result = Set.prototype.values.call(target);
-      //     triggerCallback();
-      //     return result;
-      //   };
-      // }
-
       if (prop === "values" || prop === Symbol.iterator) {
         return () => {
-          const iterator = target[Symbol.iterator](); // Використовуємо стандартний ітератор
+          const iterator = target[Symbol.iterator]();
           triggerCallback();
           return iterator;
         };
@@ -137,15 +124,18 @@ function createSetProxy(set) {
       return true;
     },
   });
+
+  setProxyCache.set(set, proxy);
+  return proxy;
 }
 
 function createArrayProxy(array) {
-  return new Proxy(array, {
+  if (arrayProxyCache.has(array)) return arrayProxyCache.get(array);
+
+  const proxy = new Proxy(array, {
     set(target, key, value) {
       target[key] = value;
-
       triggerCallback();
-
       return true;
     },
     get(target, key) {
@@ -166,19 +156,12 @@ function createArrayProxy(array) {
       return target[key];
     },
   });
+
+  arrayProxyCache.set(array, proxy);
+  return proxy;
 }
 
 export const stateForProxy = {
-  solidRoofElementWidth_m: {
-    _0_plank: 0.1015, // 0,5 plank
-    _1_plank: 0.203,
-    _2_plank: 0.406,
-    _3_plank: 0.61,
-    _4_plank: 0.813,
-    _5_plank: 1.02,
-    _6_plank: 1.22,
-    _7_plank: 0.14, // 0,75 plank
-  },
   solidRoofElementWidth_m: {
     _0_plank: 0.1015, // 0,5 plank
     _1_plank: 0.203,
@@ -202,7 +185,7 @@ export const stateForProxy = {
   postType: 0,
   directionRoof: 0,
   roofColorType: 0,
-  overhang: 18,
+  overhang: 16,
   currentRotationZ: 90,
   isRotated: false,
   rain: false,

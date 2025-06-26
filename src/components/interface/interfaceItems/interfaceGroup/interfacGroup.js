@@ -36,8 +36,6 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
 
   //HIDE GROUP IF NEEDED
   if (title === "Dimensions") {
-    console.log("DIM");
-
     setTimeout(() => {
       componentContent.find(".interface__group__inputs").append(`
         <div class="select-inputs">
@@ -55,7 +53,7 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
 
       //INIT STEEL HEADER
       componentContent.find("#steel").each(function () {
-        if (state.steel) {
+        if (state.ab) {
           $(this).addClass(activeClass);
         }
       });
@@ -63,7 +61,7 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
       //HANDLE STEEL HEADER
       componentContent.find("#steel").on("click", function () {
         $(this).toggleClass(activeClass);
-        state.steel = !state.steel;
+        state.ab = !state.ab;
 
         pergola.update();
       });

@@ -67,7 +67,7 @@ module.exports = {
           },
           mangle: false,
         },
-        extractComments: false, 
+        extractComments: false,
       }),
     ],
   },

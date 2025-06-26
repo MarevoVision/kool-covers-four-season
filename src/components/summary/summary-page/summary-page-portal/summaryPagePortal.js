@@ -2,7 +2,14 @@ import $ from "jquery";
 import "./summaryPagePortal.scss";
 import "jquery-validation";
 import { createPDF } from "../../../../core/customFunctions/createPDF";
-import { toggleLoad } from "../../../../core/3d-configurator";
+import {
+  pergola,
+  toggleBackWall,
+  toggleLeftWall,
+  toggleLoad,
+  toggleRightWall,
+} from "../../../../core/3d-configurator";
+import { state } from "../../../../core/settings";
 
 function saveFormData() {
   const formData = {
@@ -206,9 +213,11 @@ I consent to Chaya Outdoors LLC using my personal information for sales, marketi
       // await sendFormDataToGoogleSheets();
 
       if (!downloadPDF) {
-        console.log("dowloan PDF");
-
         toggleLoad(true);
+
+        if ($("#back").hasClass("active")) $("#back").trigger("click");
+        if ($("#left").hasClass("active")) $("#left").trigger("click");
+        if ($("#right").hasClass("active")) $("#right").trigger("click");
 
         await createPDF("download");
 

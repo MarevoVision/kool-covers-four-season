@@ -3,10 +3,13 @@ import {
   ChangeGlobalMorph,
   ConvertMorphValue,
   pergola,
+  pergolaConst,
 } from "../../../../../../core/3d-configurator";
 import { MORPH_DATA, state } from "../../../../../../core/settings";
 import { lightRange, shadesRange } from "../../../../../portal/rangeArrays";
 import "./generateRange.scss";
+import { countVisibleObjectsByName } from "../../../../../summary/summary-page/summaryPage";
+import { updateTextParam } from "../interfaceGroupInputs";
 
 export function capitalize(str) {
   if (str && str.length > 0) {
