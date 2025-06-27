@@ -80,7 +80,10 @@ import {
 } from "./settings";
 
 import { Vec3 } from "cannon-es";
-import { interfaceComponent } from "../components/Interface/interface";
+import {
+  interfaceComponent,
+  stringPostType,
+} from "../components/Interface/interface";
 import {
   updateMaterialMap,
   updateTextParam,
@@ -113,6 +116,9 @@ import { preloadTextures, setMaterialTexture, TEXTURES } from "./utils";
 
 const DEBUG_MODE_VALUES = false;
 export let modelForExport = null;
+let wallBackZ = null;
+let wallRightZ = null;
+let wallLeftZ = null;
 
 const sceneProperties = {
   BACKGROUND_COLOR: BACKGROUND_COLOR,
@@ -192,6 +198,7 @@ let qrcode;
 let qrScaned = 0;
 
 export let theModel;
+export let materialSolid = null;
 
 let isAutoRotate = false;
 const autoRotateSpeed = 0.05;
@@ -2772,10 +2779,15 @@ export class PergolaObject {
         }
       }
 
-      // base
+      // BASE
       if (o.name.includes("header") && !o.name.includes("LED")) {
         this.changeObjectVisibility(o);
         o.visible = true;
+      }
+
+      // SOLID MATERIAL
+      if (o.name.includes("solid_roof_5_flat")) {
+        materialSolid = o.material.normalMap;
       }
 
       // WALLS
@@ -2785,10 +2797,13 @@ export class PergolaObject {
 
         if (o.name.includes("_R")) {
           mountingWall.side = PergolaElementOrientSide.Right;
+          o.position.z += 0.05;
         } else if (o.name.includes("_L")) {
           mountingWall.side = PergolaElementOrientSide.Left;
+          o.position.z += 0.05;
         } else if (o.name.includes("_back")) {
           mountingWall.side = PergolaElementOrientSide.Back;
+          o.position.z += 0.05;
         } else {
           mountingWall.side = PergolaElementOrientSide.Right;
         }
@@ -5926,13 +5941,13 @@ export class PergolaObject {
   setPanelThicknessSolid() {
     switch (this.settings.roofSolidThickness) {
       case PergolaRoofThickness._3inch:
-        ChangeGlobalMorph("3-6", 0); // roof thickness
+        // ChangeGlobalMorph("3-6", 0); // roof thickness
         break;
       case PergolaRoofThickness._4inch:
-        ChangeGlobalMorph("3-6", 1 / 3); // roof thickness
+        // ChangeGlobalMorph("3-6", 1 / 3); // roof thickness
         break;
       case PergolaRoofThickness._6inch:
-        ChangeGlobalMorph("3-6", 0.94); // roof thickness
+        // ChangeGlobalMorph("3-6", 0.94); // roof thickness
         break;
       default:
         break;
@@ -6595,7 +6610,7 @@ export class PergolaObject {
       const solidFrameWidth_m = frameWidth_m * comboSolidPercent;
 
       this.setWrapkitThicknessCombo();
-      ChangeGlobalMorph("3-6", 0); // roof thickness
+      // ChangeGlobalMorph("3-6", 0); // roof thickness
 
       this.changeObjectVisibility(
         true,
@@ -7579,23 +7594,8 @@ export class PergolaObject {
               rafterShotTypeBack,
               pointForRafterSolid
             );
-          } else if (state.wrapKit) {
-            const newRLrafterDouble = offsetVector(RL_point, {
-              x: 0,
-            });
-            const newFRrafterDouble = offsetVector(FR_point, {
-              x: 0,
-            });
-
-            processRafterCut.call(this, rafterShotType, [
-              state.rafter ? newRLrafterDouble : newRLrafterSingle,
-              state.rafter ? newFRrafterDouble : newFRrafterSingle,
-            ]);
-            processRafterCut.call(this, rafterShotTypeBack, [
-              state.rafter ? newRLrafterDouble : newRLrafterSingle,
-              state.rafter ? newFRrafterDouble : newFRrafterSingle,
-            ]);
           }
+
           break;
 
         case typeCombo:
@@ -7680,9 +7680,9 @@ export class PergolaObject {
         : [FL_point, ...point_post_length, RL_point];
 
     const pointForBeamDir = [
-      state.leftWall ? null : FL_point,
+      state.leftWall ? (state.wallOption === 3 ? FL_point : null) : FL_point,
       ...point_post_width,
-      state.rightWall ? null : FR_point,
+      state.rightWall ? (state.wallOption === 3 ? FR_point : null) : FR_point,
     ].filter((el) => el !== null);
 
     const pointHeader = state.directionRoof ? pointForBeamDir : pointForBeam;
@@ -7752,7 +7752,7 @@ export class PergolaObject {
 
   setPostsPosition(nameArray, points, side = false) {
     const posts = this.post[nameArray];
-    const offsetWrapKit = state.wrapKit ? 0.07 : 0.12;
+    const offsetWrapKit = state.wrapKit || state.postType ? 0.07 : 0.12;
 
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
@@ -9361,6 +9361,8 @@ export class PergolaObject {
       this.changeRoofLouveredRotate(this.settings.roofLouveredRotate);
     }
 
+    this.checkEndCuts();
+
     this.setPosts();
     this.setRoof();
     this.makeSolidAndComboRoof();
@@ -9380,6 +9382,7 @@ export class PergolaObject {
     this.extendSystemsNearWall();
 
     this.checkFansOnPergola();
+    this.checkPostType();
 
     WriteURLParameters();
 
@@ -9407,6 +9410,39 @@ export class PergolaObject {
           .find(".interface__group__head__param")
           .text(`${updateTextParam(state, this, true, true, true)}`);
       }
+    }
+  }
+
+  checkPostType() {
+    const newText =
+      state.wrapKit || state.roofType === 2 ? "Santa Fe" : "Classic";
+    const option = $(".wrapp_post-type .option").eq(0);
+
+    option.find("input").val(newText);
+    option.find("label").text(newText);
+
+    const paramLabel = option.find("input").val();
+
+    const $groupHeadParam = option
+      .closest(".interface__group")
+      .find(".interface__group__head__param");
+
+    $groupHeadParam.text(paramLabel);
+  }
+
+  checkEndCuts() {
+    ChangeGlobalMorph("bevel_off", 0);
+
+    if (state.beamSize === 1 && state.roofType === 1) {
+      state.endCuts = 1;
+
+      $("#end-cuts").addClass("disable-group");
+      ChangeGlobalMorph("bevel_off", 1);
+
+      // $("#end-cuts .option").removeClass("active");
+    } else {
+      $("#end-cuts").removeClass("disable-group");
+      // state.endCuts = +$("#end-cuts .option.active").attr("id");
     }
   }
 
@@ -9773,7 +9809,7 @@ export class PergolaObject {
           // element.object.position.y = 0.05;
 
           if (state.roofType === PergolaRoofType.Combo) {
-            element.object.position.x = COMBO_LATTICE_CENTER_point.x + 0.1;
+            element.object.position.x = COMBO_LATTICE_CENTER_point.x;
           }
 
           // if (state.roofType === PergolaRoofType.Louvered) {
@@ -9929,6 +9965,8 @@ export class PergolaObject {
 
   setAddOptionWall() {
     ChangeGlobalMorph("on_roof", 0);
+    ChangeGlobalMorph("fascia", 0);
+
     const backBeam = GetMesh("back_beam_wall");
     const backBeamL = GetMesh("beam_wall_L");
     const backBeamR = GetMesh("beam_wall_L001");
@@ -9974,9 +10012,13 @@ export class PergolaObject {
       // fascia-mounted
       case state.wallOption === 2:
         state.backWall = true;
-        const oldHeight = backBeamR.position.y;
 
-        if (state.backWall) backBeam.visible = true;
+        ChangeGlobalMorph("fascia", 1);
+
+        if (state.backWall) {
+          backBeam.visible = true;
+          // backBeam.position.y -= 0.2;
+        }
 
         if (state.leftWall) {
           backBeamL.visible = true;
@@ -9998,7 +10040,7 @@ export class PergolaObject {
           // }
         }
 
-        backBeam.position.z = backBeam.position.z - 0.01;
+        // backBeam.position.z = backBeam.position.z - 0.01;
 
         // ChangeGlobalMorph("on_roof", 0.1);
         $("#back").addClass("active");
@@ -10024,7 +10066,11 @@ export class PergolaObject {
           toggleBackWall(true);
         }
 
-        ChangeGlobalMorph("on_roof", 0.58);
+        if (!state.roofType) {
+          ChangeGlobalMorph("on_roof", state.directionRoof ? 0.68 : 0.73);
+        } else {
+          ChangeGlobalMorph("on_roof", state.beamSize ? 0.75 : 0.85);
+        }
 
         break;
 
@@ -10287,10 +10333,18 @@ export class PergolaObject {
         .filter((span) => span.number === qntySpanLength)
         .forEach((span) => {
           span.systems.forEach((system) => {
-            ChangeObjectMorph(system.object, "+6", 1);
+            ChangeObjectMorph(
+              system.object,
+              "+6",
+              system.type === pergolaConst.systemType.autoShade ? 0.8 : 2
+            );
 
             system.object.children.forEach((el) => {
-              ChangeObjectMorph(el, "+6", 1);
+              ChangeObjectMorph(
+                el,
+                "+6",
+                system.type === pergolaConst.systemType.autoShade ? 0.8 : 2
+              );
             });
 
             if (
@@ -10507,13 +10561,13 @@ export class PergolaObject {
     );
 
     const targetValueFanBeamLenght = ConvertMorphValue(
-      this.getMeters(length) - this.inchesToMeters(state.overhang),
+      this.getMeters(length) - this.inchesToMeters(state.overhang / 1.8),
       this.getMeters(MORPH_DATA.length.min),
       this.getMeters(MORPH_DATA.length.max)
     );
 
     const targetValueFanBeamWidth = ConvertMorphValue(
-      this.getMeters(width) - this.inchesToMeters(state.overhang),
+      this.getMeters(width) - this.inchesToMeters(state.overhang / 2),
       this.getMeters(MORPH_DATA.width.min),
       this.getMeters(MORPH_DATA.width.max)
     );
@@ -10547,6 +10601,7 @@ export class PergolaObject {
     );
 
     ChangeGlobalMorph("+8in", state.directionRoof ? 1 : 0);
+    ChangeGlobalMorph("-8in", state.directionRoof ? 0.8 : 0);
 
     ChangeGlobalMorph("+6", 0);
     ChangeGlobalMorph("+12L", 0);
@@ -10582,32 +10637,48 @@ export class PergolaObject {
 
     // RAIN MORPH
     let morphForRain = null;
+    let roofOffset = null;
 
     switch (state.overhang) {
       case 16:
         morphForRain = 0;
+        roofOffset = 1;
+
         break;
 
       case 20:
         morphForRain = 0.18;
+        roofOffset = 1.4;
+
         break;
 
       case 24:
         morphForRain = 0.3;
+        roofOffset = 1.6;
+
         break;
 
       case 28:
         morphForRain = 0.5;
+        roofOffset = 2;
+
         break;
     }
 
     // const morhForHalfLattice = "";
 
+    ChangeGlobalMorph("+8", roofOffset);
+
     ChangeGlobalMorph("overhang_rain", morphForRain);
 
     ChangeGlobalMorph("8-5", state.beamSize);
 
-    ChangeGlobalMorph("3-6", morhWrapKitThickness);
+    if (state.roofType === 2) {
+      ChangeGlobalMorph("3-6", 1.65);
+    } else {
+      ChangeGlobalMorph("3-6", morhWrapKitThickness);
+    }
+
     ChangeGlobalMorph("2x6-3x8", 1);
 
     ChangeGlobalMorph("close_shades_side", openZipSide);

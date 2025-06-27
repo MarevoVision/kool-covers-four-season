@@ -1080,6 +1080,7 @@ export function portalComponent() {
 
           if (id === state.beamSize) {
             $input.addClass("active");
+            pergola.setAddOptionWall();
           }
 
           if (state.beamSize) {
@@ -1275,6 +1276,7 @@ export function portalComponent() {
 
           $input.addClass("active");
 
+          pergola.setAddOptionWall();
           pergola.update();
         });
       //#endregion
@@ -1419,6 +1421,7 @@ export function portalComponent() {
 
         state.directionRoof = !state.directionRoof;
 
+        pergola.setAddOptionWall();
         pergola.update();
       });
       //#endregion

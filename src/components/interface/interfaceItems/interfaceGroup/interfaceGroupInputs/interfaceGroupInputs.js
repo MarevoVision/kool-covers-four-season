@@ -4,6 +4,7 @@ import {
   ChangeGlobalMorph,
   GetMesh,
   hideIcon,
+  materialSolid,
   pergola,
   pergolaConst,
   setAllHotspotsVisibility,
@@ -31,7 +32,7 @@ import { generateRangeHTML } from "./range/generateRange";
 export const colors = {
   White: "#1C1C1C",
   Grey: "#F5F5F5",
-  Black: "#B0B0B0",
+  Gray: "#B0B0B0",
   Coffee: "#36454F",
   Oak: "#3F1A00",
 };
@@ -146,6 +147,11 @@ export function updateMaterialMap(mesh, hex = false) {
       mesh.material.map = null;
       mesh.material.color.set(hex);
       mesh.material.needsUpdate = true;
+      mesh.material.normalMap = null;
+
+      if (state.roofType === 1 && hex === "#CAC6C5") {
+        mesh.material.normalMap = materialSolid;
+      }
     }
   }
 }
@@ -396,6 +402,8 @@ export function interfaceGroupInputsComponent(
               .addClass(activeRoofTypeClass);
           }
 
+          pergola.setAddOptionWall();
+
           setTimeout(() => {
             if (typeLattice) {
               $("#solid").hide();
@@ -457,6 +465,8 @@ export function interfaceGroupInputsComponent(
             state.thickness = 0;
             state.beamSize = 1;
 
+            ChangeGlobalMorph("3-6", 1.65);
+
             state.rain = false;
             $("#solid .option")
               .eq($("#lettice .option").length)
@@ -515,6 +525,7 @@ export function interfaceGroupInputsComponent(
 
           // updatePostSize();
 
+          pergola.setAddOptionWall();
           pergola.update();
         });
       //#endregion
@@ -995,14 +1006,14 @@ export function interfaceGroupInputsComponent(
           value: "Wheat",
           image: "wheat.png",
           id: "Wheat",
-          hex: "#9C9481",
+          hex: "#C7C2A9",
         },
         {
           name: "Ivory",
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#C7C2A9",
+          hex: "#513a2a",
         },
         {
           name: "Bronze",
@@ -1010,20 +1021,6 @@ export function interfaceGroupInputsComponent(
           image: "bronze.png",
           id: "Bronze",
           hex: "#58544F",
-        },
-        {
-          name: "Brown",
-          value: "Brown",
-          image: "bronze.png",
-          id: "Brown",
-          hex: "#804030",
-        },
-        {
-          name: "Sand",
-          value: "Sand",
-          image: "bronze.png",
-          id: "Sand",
-          hex: "#F6D7B0",
         },
       ];
 
@@ -1047,14 +1044,14 @@ export function interfaceGroupInputsComponent(
           value: "Wheat",
           image: "wheat.png",
           id: "Wheat",
-          hex: "#9C9481",
+          hex: "#C7C2A9",
         },
         {
           name: "Ivory",
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#C7C2A9",
+          hex: "#513a2a",
         },
         {
           name: "Brown",
@@ -1069,6 +1066,20 @@ export function interfaceGroupInputsComponent(
           image: "bronze.png",
           id: "Sand",
           hex: "#F6D7B0",
+        },
+        {
+          name: "Gray",
+          value: "Gray",
+          image: "bronze.png",
+          id: "Gray",
+          hex: "#e3d9c6",
+        },
+        {
+          name: "Black",
+          value: "Black",
+          image: "bronze.png",
+          id: "Black",
+          hex: "#060012",
         },
       ];
 
@@ -1092,14 +1103,14 @@ export function interfaceGroupInputsComponent(
           value: "Wheat",
           image: "wheat.png",
           id: "Wheat",
-          hex: "#9C9481",
+          hex: "#C7C2A9",
         },
         {
           name: "Ivory",
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#C7C2A9",
+          hex: "#513a2a",
         },
         {
           name: "Brown",
@@ -1114,6 +1125,20 @@ export function interfaceGroupInputsComponent(
           image: "bronze.png",
           id: "Sand",
           hex: "#F6D7B0",
+        },
+        {
+          name: "Gray",
+          value: "Gray",
+          image: "bronze.png",
+          id: "Gray",
+          hex: "#e3d9c6",
+        },
+        {
+          name: "Black",
+          value: "Black",
+          image: "bronze.png",
+          id: "Black",
+          hex: "#060012",
         },
       ];
 
@@ -1589,7 +1614,7 @@ export function interfaceGroupInputsComponent(
                   <div class="type_interface_electronic_item option">
                     <label class="type_interface_electronic_label">
                        <div class="image-container">
-                           <img src="public/img/electro/led-light.svg" alt="Textured Black" class="color-image">
+                           <img src="public/img/electro/led-light.svg" alt="Textured Gray" class="color-image">
                        </div>
                        
                        <span class="electronic-name">LED Lights</span>
@@ -1600,7 +1625,7 @@ export function interfaceGroupInputsComponent(
                   <div class="type_interface_electronic_item option">
                     <label class="type_interface_electronic_label">
                        <div class="image-container">
-                           <img src="public/img/electro/mood-light.svg" alt="Textured Black" class="color-image">
+                           <img src="public/img/electro/mood-light.svg" alt="Textured Gray" class="color-image">
                        </div>
                        
                        <span class="electronic-name">Mood Light</span>
@@ -1611,7 +1636,7 @@ export function interfaceGroupInputsComponent(
                   <div class="type_interface_electronic_item option">
                     <label class="type_interface_electronic_label">
                        <div class="image-container">
-                           <img src="public/img/electro/fans.svg" alt="Textured Black" class="color-image">
+                           <img src="public/img/electro/fans.svg" alt="Textured Gray" class="color-image">
                        </div>
                        
                        <span class="electronic-name">Fans</span>
@@ -1622,7 +1647,7 @@ export function interfaceGroupInputsComponent(
                   <div class="type_interface_electronic_item option">
                     <label class="type_interface_electronic_label">
                        <div class="image-container">
-                           <img src="public/img/electro/Rectangle-3.svg" alt="Textured Black" class="color-image">
+                           <img src="public/img/electro/Rectangle-3.svg" alt="Textured Gray" class="color-image">
                        </div>
                        
                        <span class="electronic-name">Heaters</span>
@@ -1795,7 +1820,7 @@ export function interfaceGroupInputsComponent(
 
     case typesInputs.endCuts:
       const endCutsContent = $(`
-                  <form class="type_interface_radio-model">
+                  <form class="type_interface_radio-model" id="end-cuts">
                     <div class="type_interface_radio-model_item option" id="1">
                       <input data-value="0" class="type_interface_radio-model_option ends-cut--bevel" 
                           type="radio" name="fav_language" value="${stringEndCuts[0]}"
@@ -2041,7 +2066,7 @@ export function interfaceGroupInputsComponent(
                   <div class="type_interface_electronic_item option">
                     <label class="type_interface_electronic_label">
                        <div class="image-container">
-                           <img src="public/img/screen-roof.png" alt="Textured Black" class="color-image">
+                           <img src="public/img/screen-roof.png" alt="Textured Gray" class="color-image">
                        </div>
                        
                        <span class="electronic-name">Screens</span>

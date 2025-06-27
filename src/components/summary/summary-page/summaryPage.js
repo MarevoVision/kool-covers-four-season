@@ -76,7 +76,12 @@ export function summaryPageComponent(container) {
       .join(", ") || `${wallAddOptionString[state.wallOption]}`;
 
   const roofType = stringRoofType[state.roofType];
-  const postType = stringPostType[state.postType];
+  const stringPostTypeNew = {
+    0: state.wrapKit || state.roofType === 2 ? "Santa Fe" : "Classic",
+    1: "Square Column",
+    2: "Round Column",
+  };
+  const postType = stringPostTypeNew[state.postType];
   const postSize = `${state.postSize}' x ${state.postSize}'`;
   const endCuts = `${stringEndCuts[state.endCuts - 1]}`;
 
@@ -401,7 +406,8 @@ export function summaryPageComponent(container) {
         <div class="sum__page__main-list__info"> 
           <h3 class="sum__page__main-list__info__title">Fan</h3>
           <div class="sum__page__main-list__info__param">${
-            state.electro.has(pergolaConst.optionNameString.LEDRampLight)
+            state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
+            state.roofType !== 2
               ? countVisibleObjectsByName(model, "fan", true, true) / 2 || "No"
               : countVisibleObjectsByName(model, "fan", true, true) || "No"
           }</div>

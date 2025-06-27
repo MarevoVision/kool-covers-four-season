@@ -46,7 +46,7 @@ export const stringRoofType = {
 };
 
 export const stringPostType = {
-  0: "Standard",
+  0: state.wrapKit || state.roofType === 2 ? "Santa Fe" : "Classic",
   1: "Square Column",
   2: "Round Column",
 };

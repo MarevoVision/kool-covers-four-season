@@ -742,8 +742,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   background-color: vars.$white-color;
   cursor: pointer;
   animation: pulse-border 1.5s infinite;
@@ -754,8 +754,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 18px;
-    height: 18px;
+    width: 23px;
+    height: 23px;
     display: flex;
 
     &:hover {
@@ -766,7 +766,7 @@
   &::after {
     content: attr(data-value);
     position: absolute;
-    right: 30px;
+    right: 40px;
     color: vars.$second-color;
     border-radius: 3px;
     white-space: nowrap;
@@ -797,6 +797,7 @@
   position: absolute;
   top: 20px;
   right: 20px;
+  padding: 6px;
 }
 
 .sun__icon-active--7 {
@@ -805,8 +806,8 @@
 
   .sun__icon__img {
     background-image: url(../../../public/img/icons/mood-light-active.svg) !important;
-    width: 22px;
-    height: 19px;
+    width: 23px;
+    height: 23px;
   }
 }
 
@@ -816,8 +817,8 @@
 
   .sun__icon__img {
     background-image: url(../../../public/img/icons/led-light-active.svg) !important;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
   }
 }
 
@@ -831,8 +832,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 16px;
-    height: 15px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -855,8 +856,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -870,8 +871,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -885,8 +886,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 13px;
-    height: 16px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -900,8 +901,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -915,8 +916,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }
@@ -932,8 +933,8 @@
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
-    width: 22px;
-    height: 22px;
+    width: 23px;
+    height: 23px;
     display: flex;
   }
 }

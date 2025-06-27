@@ -214,12 +214,40 @@ I consent to Chaya Outdoors LLC using my personal information for sales, marketi
 
       if (!downloadPDF) {
         toggleLoad(true);
+        let oldBackWall = null;
+        let oldRightWall = null;
+        let oldLeftWall = null;
 
-        if ($("#back").hasClass("active")) $("#back").trigger("click");
-        if ($("#left").hasClass("active")) $("#left").trigger("click");
-        if ($("#right").hasClass("active")) $("#right").trigger("click");
+        if ($("#back").hasClass("active")) {
+          oldBackWall = true;
+
+          $("#back").trigger("click");
+        }
+        if ($("#left").hasClass("active")) {
+          oldLeftWall = true;
+
+          $("#left").trigger("click");
+        }
+
+        if ($("#right").hasClass("active")) {
+          oldRightWall = true;
+
+          $("#right").trigger("click");
+        }
 
         await createPDF("download");
+
+        if (oldBackWall) {
+          $("#back").trigger("click");
+        }
+
+        if (oldLeftWall) {
+          $("#left").trigger("click");
+        }
+
+        if (oldRightWall) {
+          $("#right").trigger("click");
+        }
 
         toggleLoad(false);
 
