@@ -3,7 +3,7 @@ import { ArViewerComponent } from "./components/ar-viewer/ArViewer";
 import { modelViewerComponent } from "./components/model-viewer/modelViewer";
 import { portalComponent } from "./components/portal/portals";
 import { summaryPageComponent } from "./components/summary/summary-page/summaryPage";
-import { Start } from "./core/3d-configurator";
+import { pergola, Start } from "./core/3d-configurator";
 import "./styles/main.scss";
 import "./styles/mobileStyles.scss";
 import { initStateFromUrl } from "./core/customFunctions/paramsURL";

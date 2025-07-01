@@ -448,6 +448,7 @@ export function interfaceGroupInputsComponent(
             $("#lettice .option")
               .eq($("#lettice .option").length - 1)
               .trigger("change");
+            window.colorLattice();
           }
 
           if (typeSolid) {
@@ -458,6 +459,8 @@ export function interfaceGroupInputsComponent(
             $("#solid .option")
               .eq($("#lettice .option").length)
               .trigger("change");
+
+            window.colorSolidInit(false);
           }
 
           if (typeCombo) {
@@ -645,9 +648,9 @@ export function interfaceGroupInputsComponent(
         backBeamR.visible = false;
 
         if (state.wallOption === 2) {
-          if (state.backWall) backBeam.visible = true;
-          if (state.leftWall) backBeamL.visible = true;
-          if (state.rightWall) backBeamR.visible = true;
+          // if (state.backWall) backBeam.visible = true;
+          if (state.leftWall && !state.roofType) backBeamL.visible = true;
+          if (state.rightWall && !state.roofType) backBeamR.visible = true;
         }
 
         pergola.update();
@@ -673,9 +676,9 @@ export function interfaceGroupInputsComponent(
         backBeamR.visible = false;
 
         if (state.wallOption === 2) {
-          if (state.backWall) backBeam.visible = true;
-          if (state.leftWall) backBeamL.visible = true;
-          if (state.rightWall) backBeamR.visible = true;
+          // if (state.backWall) backBeam.visible = true;
+          if (state.leftWall && !state.roofType) backBeamL.visible = true;
+          if (state.rightWall && !state.roofType) backBeamR.visible = true;
         }
 
         pergola.update();
@@ -701,9 +704,9 @@ export function interfaceGroupInputsComponent(
         backBeamR.visible = false;
 
         if (state.wallOption === 2) {
-          if (state.backWall) backBeam.visible = true;
-          if (state.leftWall) backBeamL.visible = true;
-          if (state.rightWall) backBeamR.visible = true;
+          // if (state.backWall) backBeam.visible = true;
+          if (state.leftWall && !state.roofType) backBeamL.visible = true;
+          if (state.rightWall && !state.roofType) backBeamR.visible = true;
         }
 
         pergola.update();
@@ -1349,9 +1352,7 @@ export function interfaceGroupInputsComponent(
           return match ? match[0] : state.colorRoof;
         })();
 
-        window.colorSolidInit = function () {
-          console.log("init SOLID color");
-
+        window.colorSolidInit = function (init = true) {
           // #region Init Solid * MAIN INIT COLOR
           roofColorContent.find("#solid .option").each(function () {
             const $this = $(this);
@@ -1368,6 +1369,8 @@ export function interfaceGroupInputsComponent(
             const inputColorValue = extractImagePath(bgImage, bgColor);
             const nameOfColor = $this.find("input").val();
 
+            $item.removeClass(activeColorClass);
+
             if (inputColorValue === normalizedSolidColor) {
               $item.addClass(activeColorClass);
               $this.find("input").prop("checked", true);
@@ -1375,28 +1378,29 @@ export function interfaceGroupInputsComponent(
               solidColorString = nameOfColor;
 
               //MAIN INIT COLOR
-              setTimeout(() => {
-                const resultColorRoof = typeSolid
-                  ? solidColorString
-                  : typeLettice
-                  ? letticeColorString
-                  : `${letticeColorString},${solidColorString || ""}`;
+              setTimeout(
+                () => {
+                  const resultColorRoof = typeSolid
+                    ? solidColorString
+                    : typeLettice
+                    ? letticeColorString
+                    : `${letticeColorString},${solidColorString || ""}`;
 
-                $this
-                  .closest(".interface__group")
-                  .find(".interface__group__head__param")
-                  .text(resultColorRoof);
+                  $this
+                    .closest(".interface__group")
+                    .find(".interface__group__head__param")
+                    .text(resultColorRoof);
 
-                updateMaterialMap(solid, hex);
-              }, 100);
+                  updateMaterialMap(solid, hex);
+                },
+                init ? 50 : 0
+              );
             }
           });
           // #endregion
         };
 
         window.colorLattice = function () {
-          console.log("init LATTICE color");
-
           // #region Init Lattice
           roofColorContent.find("#lettice .option").each(function () {
             const $this = $(this);
@@ -1411,6 +1415,8 @@ export function interfaceGroupInputsComponent(
 
             const inputColorValue = extractImagePath(bgImage, bgColor);
             const nameOfColor = $this.find("input").val();
+
+            $item.removeClass(activeColorClass);
 
             if (inputColorValue === normalizedLatticeColor) {
               $item.addClass(activeColorClass);

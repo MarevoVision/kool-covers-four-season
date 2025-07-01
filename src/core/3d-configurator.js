@@ -1816,9 +1816,8 @@ function PrepareAR() {
     } else if (event.detail.status == "not-presenting") {
       arPromt[0].style.display = "none";
       modelViewer[0].resetScene();
-      init = true;
 
-      if (getMobileOperatingSystem() == "Android") {
+      if (currentOS == "Android") {
         if (pergolaSettings.mountingWall_Back && pergola != null) {
           pergola.changeMountingWallVisibility(
             pergolaSettings.mountingWall_Back,
@@ -1849,20 +1848,30 @@ function PrepareAR() {
   });
 }
 
-async function OpenAR() {
-  InitMorphModel(theModel);
-
+function OpenAR() {
   ComputeMorphedAttributes();
 
-  await ImportScene(scene);
+  // //Remove wall
+  // toggleBackWall(false);
+  // toggleLeftWall(false);
+  // toggleRightWall(false);
+
+  ImportScene(scene);
 }
 
 // eslint-disable-next-line no-unused-vars
 export function OpenARorQR() {
+  console.log(currentOS, "OS");
+
   if (["Android", "iOS", "VisionPro"].includes(currentOS)) {
+    $("#footer").removeClass("footer-h");
+
     OpenAR();
+
     return;
   }
+
+  $(".main-content").addClass("main-content-bg");
 
   CreateQR();
 
@@ -2797,13 +2806,13 @@ export class PergolaObject {
 
         if (o.name.includes("_R")) {
           mountingWall.side = PergolaElementOrientSide.Right;
-          o.position.z += 0.05;
+          o.position.z += 0.03;
         } else if (o.name.includes("_L")) {
           mountingWall.side = PergolaElementOrientSide.Left;
-          o.position.z += 0.05;
+          o.position.z += 0.03;
         } else if (o.name.includes("_back")) {
           mountingWall.side = PergolaElementOrientSide.Back;
-          o.position.z += 0.05;
+          o.position.z += 0.03;
         } else {
           mountingWall.side = PergolaElementOrientSide.Right;
         }
@@ -5161,10 +5170,21 @@ export class PergolaObject {
     }
 
     const fansBeam = this.fansBeam;
-    const offsetLed =
-      state.skyLight || state.directionRoof
-        ? 0.3
-        : this.getMeters(state.width) * 0.1;
+    let offsetLed = null;
+
+    switch (true) {
+      case state.skyLight:
+        offsetLed = 0.4;
+        break;
+
+      case state.directionRoof:
+        offsetLed = this.getMeters(state.length) * 0.1;
+        break;
+
+      default:
+        offsetLed = this.getMeters(state.width) * 0.2;
+        break;
+    }
 
     //#region BEAM X
     if (!state.directionRoof) {
@@ -5184,10 +5204,7 @@ export class PergolaObject {
               this.ledsDifSide
             );
 
-            if (
-              state.electro.has(pergolaConst.optionNameString.LEDRampLight) &&
-              state.width > 8
-            ) {
+            if (state.electro.has(pergolaConst.optionNameString.LEDRampLight)) {
               // #region first led
               elementPoinLight.object.position.x = pointX + offsetLed;
               elementPoinLight.object.position.z = pointZ;
@@ -5758,8 +5775,12 @@ export class PergolaObject {
     );
 
     const pointForCorner = [
-      !state.leftWall ? FL_point : {},
-      !state.rightWall ? FR_point : {},
+      !state.leftWall || (state.wallOption === 2 && state.roofType)
+        ? FL_point
+        : {},
+      !state.rightWall || (state.wallOption === 2 && state.roofType)
+        ? FR_point
+        : {},
       !state.backWall && !state.leftWall ? RL_point : {},
       !state.backWall && !state.rightWall ? RR_point : {},
     ];
@@ -5793,11 +5814,11 @@ export class PergolaObject {
         case state.postType === 0 && !state.wrapKit && state.roofType !== 2:
           this.setPostsPosition("post3x3", pointForCorner);
 
-          if (!state.leftWall) {
+          if (!state.leftWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("post3x3Left", point_post_length, true);
           }
 
-          if (!state.rightWall) {
+          if (!state.rightWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("post3x3Right", point_post_length, true);
           }
 
@@ -5807,7 +5828,6 @@ export class PergolaObject {
 
           this.setPostsPosition("post3x3Front", point_post_width, true);
 
-          console.log("POST 0");
           break;
 
         case state.postType === 0 && state.roofType === 2:
@@ -5816,11 +5836,11 @@ export class PergolaObject {
 
           this.setPostsPosition(typeOfBeam, pointForCorner);
 
-          if (!state.leftWall) {
+          if (!state.leftWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition(`${typeOfBeam}Left`, point_post_length, true);
           }
 
-          if (!state.rightWall) {
+          if (!state.rightWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition(
               `${typeOfBeam}Right`,
               point_post_length,
@@ -5834,17 +5854,16 @@ export class PergolaObject {
 
           this.setPostsPosition(`${typeOfBeam}Front`, point_post_width, true);
 
-          console.log("POST 1");
           break;
 
         case state.postType === 1:
           this.setPostsPosition("postSquare", pointForCorner);
 
-          if (!state.leftWall) {
+          if (!state.leftWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("postSquareLeft", point_post_length, true);
           }
 
-          if (!state.rightWall) {
+          if (!state.rightWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("postSquareRight", point_post_length, true);
           }
 
@@ -5858,11 +5877,11 @@ export class PergolaObject {
         case state.postType === 2:
           this.setPostsPosition("postRound", pointForCorner);
 
-          if (!state.leftWall) {
+          if (!state.leftWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("postRoundLeft", point_post_length, true);
           }
 
-          if (!state.rightWall) {
+          if (!state.rightWall || (state.wallOption === 2 && state.roofType)) {
             this.setPostsPosition("postRoundRight", point_post_length, true);
           }
 
@@ -9362,6 +9381,7 @@ export class PergolaObject {
     }
 
     this.checkEndCuts();
+    this.checkWallOption();
 
     this.setPosts();
     this.setRoof();
@@ -9393,6 +9413,24 @@ export class PergolaObject {
     //this.changeDimensions(8, 8);
   }
 
+  checkWallOption() {
+    if (!state.backWall && !state.leftWall && !state.rightWall) {
+      state.wallOption = 0;
+      this.setAddOptionWall();
+      $(".wrapp-wall-add-option .option")
+        .removeClass("active")
+        .eq(0)
+        .addClass("active");
+    } else if (!state.backWall && state.wallOption === 2) {
+      state.wallOption = 1;
+      this.setAddOptionWall();
+      $(".wrapp-wall-add-option .option")
+        .removeClass("active")
+        .eq(1)
+        .addClass("active");
+    }
+  }
+
   checkFansOnPergola() {
     if (
       state.roofType === 1 &&
@@ -9414,20 +9452,22 @@ export class PergolaObject {
   }
 
   checkPostType() {
-    const newText =
-      state.wrapKit || state.roofType === 2 ? "Santa Fe" : "Classic";
-    const option = $(".wrapp_post-type .option").eq(0);
+    if (!state.postType) {
+      const newText =
+        state.wrapKit || state.roofType === 2 ? "Santa Fe" : "Classic";
+      const option = $(".wrapp_post-type .option").eq(0);
 
-    option.find("input").val(newText);
-    option.find("label").text(newText);
+      option.find("input").val(newText);
+      option.find("label").text(newText);
 
-    const paramLabel = option.find("input").val();
+      const paramLabel = option.find("input").val();
 
-    const $groupHeadParam = option
-      .closest(".interface__group")
-      .find(".interface__group__head__param");
+      const $groupHeadParam = option
+        .closest(".interface__group")
+        .find(".interface__group__head__param");
 
-    $groupHeadParam.text(paramLabel);
+      $groupHeadParam.text(paramLabel);
+    }
   }
 
   checkEndCuts() {
@@ -9966,6 +10006,7 @@ export class PergolaObject {
   setAddOptionWall() {
     ChangeGlobalMorph("on_roof", 0);
     ChangeGlobalMorph("fascia", 0);
+    $("#rain").removeClass("disable");
 
     const backBeam = GetMesh("back_beam_wall");
     const backBeamL = GetMesh("beam_wall_L");
@@ -10013,46 +10054,29 @@ export class PergolaObject {
       case state.wallOption === 2:
         state.backWall = true;
 
-        ChangeGlobalMorph("fascia", 1);
+        $("#rain").removeClass("active");
+        $("#rain").addClass("disable");
+
+        state.rain = false;
 
         if (state.backWall) {
-          backBeam.visible = true;
+          // backBeam.visible = true;
+          ChangeGlobalMorph("fascia", 1);
+
           // backBeam.position.y -= 0.2;
         }
 
-        if (state.leftWall) {
+        if (state.leftWall && !state.roofType) {
           backBeamL.visible = true;
-
-          // if (state.directionRoof) {
-          //   backBeamL.position.y = oldHeight + 0.2;
-          // } else {
-          //   backBeamL.position.y = oldHeight - 0.25;
-          // }
         }
 
-        if (state.rightWall) {
+        if (state.rightWall && !state.roofType) {
           backBeamR.visible = true;
-
-          // if (state.directionRoof) {
-          //   backBeamR.position.y = oldHeight + 0.2;
-          // } else {
-          //   backBeamR.position.y = oldHeight - 0.25;
-          // }
         }
 
-        // backBeam.position.z = backBeam.position.z - 0.01;
-
-        // ChangeGlobalMorph("on_roof", 0.1);
         $("#back").addClass("active");
 
         toggleBackWall(true);
-        // if (!backSpanSystem) {
-        //   $("#back").addClass("active");
-
-        //   state.backWall = true;
-
-        //   toggleBackWall(true);
-        // }
 
         break;
 
@@ -10642,25 +10666,25 @@ export class PergolaObject {
     switch (state.overhang) {
       case 16:
         morphForRain = 0;
-        roofOffset = 1;
+        roofOffset = state.wallOption === 2 ? 0.4 : 1;
 
         break;
 
       case 20:
         morphForRain = 0.18;
-        roofOffset = 1.4;
+        roofOffset = state.wallOption === 2 ? 0.4 : 1.4;
 
         break;
 
       case 24:
         morphForRain = 0.3;
-        roofOffset = 1.6;
+        roofOffset = state.wallOption === 2 ? 0.4 : 1.6;
 
         break;
 
       case 28:
         morphForRain = 0.5;
-        roofOffset = 2;
+        roofOffset = state.wallOption === 2 ? 0.4 : 2;
 
         break;
     }

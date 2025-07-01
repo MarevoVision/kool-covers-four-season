@@ -3,8 +3,16 @@ import "./modelViewer.scss";
 import * as THREE from "three";
 import modelViewerHTML from "./modelViewer.html";
 import { shareArComponent } from "../shareAr/shareAr";
-import { GetGroup, OpenARorQR } from "../../core/3d-configurator";
+import {
+  GetGroup,
+  OpenARorQR,
+  pergola,
+  toggleBackWall,
+  toggleLeftWall,
+  toggleRightWall,
+} from "../../core/3d-configurator";
 import { getMobileOperatingSystem } from "../../core/3d-scene";
+import { state } from "../../core/settings";
 
 export async function modelViewerComponent(container) {
   const componentContent = $('<div class="model-viewer-container"></div>');
@@ -18,28 +26,15 @@ export async function modelViewerComponent(container) {
     $(".interface-container").addClass("interface-container-portal");
   });
 
-  componentContent.find("#js-showModalQRcode").on("click", async () => {
+  componentContent.find("#js-showModalQRcode").on("click", () => {
     OpenARorQR();
-    $(".main-content").addClass("main-content-bg");
 
-    if (
-      (await getMobileOperatingSystem()) == "Android" ||
-      (await getMobileOperatingSystem()) == "iOS"
-    ) {
-      GetGroup("shades_X").children.forEach((child) => {
-        if (child.material) {
-          child.material.side = THREE.DoubleSide;
-        }
-      });
 
-      GetGroup("shades_Y").children.forEach((child) => {
-        if (child.material) {
-          child.material.side = THREE.DoubleSide;
-        }
-      });
-
-      $("#footer").removeClass("footer-h");
-    }
+    // if (
+    //   getMobileOperatingSystem() == "Android" ||
+    //   getMobileOperatingSystem() == "iOS"
+    // ) {
+    // }
   });
 
   componentContent.find(".full-screen").on("click", () => {

@@ -976,6 +976,10 @@ export function portalComponent() {
           $(this).addClass("active");
         }
 
+        if (state.wallOption === 2) {
+          $(this).addClass("disable");
+        }
+
         pergola.update();
       });
       //  #endregion
@@ -1080,13 +1084,13 @@ export function portalComponent() {
 
           if (id === state.beamSize) {
             $input.addClass("active");
-            pergola.setAddOptionWall();
           }
 
           if (state.beamSize) {
             portalContent.find("#wrap-kit").addClass("disable");
           }
         });
+
       //#endregion
 
       //#region INIT RAFTER
