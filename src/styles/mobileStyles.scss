@@ -121,6 +121,13 @@
     left: 0 !important;
     right: 0;
     border-radius: 12px 12px 0 0;
+
+    &-wrapp {
+      height: 50%;
+      overflow: scroll;
+      width: 100%;
+      padding-bottom: 20px;
+    }
   }
 
   .icon_wrap {

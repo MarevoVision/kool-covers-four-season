@@ -64,6 +64,7 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
         state.ab = !state.ab;
 
         pergola.update();
+        pergola.checkSystemsInScene();
       });
     }, 500);
   }

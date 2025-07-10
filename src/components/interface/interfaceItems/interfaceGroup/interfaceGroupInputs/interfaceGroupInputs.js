@@ -206,6 +206,11 @@ export function interfaceGroupInputsComponent(
           "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/azenco/dist/index.html";
         window.location.href = link;
       });
+      fourK.on("click", function () {
+        const link =
+          "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/4k/dist/index.html";
+        window.location.href = link;
+      });
 
       radioModelInputs
         .find('.type_interface_radio-model_item input[type="radio"]')
@@ -425,6 +430,14 @@ export function interfaceGroupInputsComponent(
           const typeSolid = state.roofType === 1;
           const typeCombo = state.roofType === 2;
 
+          // state.colorBody = "#998F7A";
+          // state.colorRoof = "#998F7A";
+          // state.colorRoofSolid = "#998F7A";
+
+          // stringNameRoofLetticeColor = "Adobe";
+          // stringNameRoofSolidColor = "Adobe";
+          // stringNameFrameColor = "Adobe";
+
           $("#wrap-kit").removeClass("active");
           state.wrapKit = false;
 
@@ -445,20 +458,30 @@ export function interfaceGroupInputsComponent(
             state.beamSize = 1;
 
             $("#solid").hide();
-            $("#lettice .option")
-              .eq($("#lettice .option").length - 1)
-              .trigger("change");
+            // $("#lettice .option")
+            //   .eq($("#lettice .option").length - 1)
+            //   .trigger("change");
             window.colorLattice();
           }
 
           if (typeSolid) {
             showIcon(10);
             $("#lettice").hide();
+            $("#end-cuts .option")
+              .removeClass("active")
+              .eq(0)
+              .addClass("active");
+
+            $("#end-cuts .option")
+              .eq(0)
+              .closest(".interface__group")
+              .find(".interface__group__head__param")
+              .text($("#end-cuts .option").eq(0).find("input").val());
+
+            state.endCuts = 1;
             state.thickness = 3;
             state.rain = false;
-            $("#solid .option")
-              .eq($("#lettice .option").length)
-              .trigger("change");
+            // $("#solid .option").eq(0).trigger("change");
 
             window.colorSolidInit(false);
           }
@@ -471,12 +494,6 @@ export function interfaceGroupInputsComponent(
             ChangeGlobalMorph("3-6", 1.65);
 
             state.rain = false;
-            $("#solid .option")
-              .eq($("#lettice .option").length)
-              .trigger("change");
-            $("#lettice .option")
-              .eq($("#lettice .option").length - 1)
-              .trigger("change");
           }
 
           // #region RE-INIT thickness
@@ -528,8 +545,14 @@ export function interfaceGroupInputsComponent(
 
           // updatePostSize();
 
+          $("#solid .option").eq(0).trigger("change");
+          state.colorRoofSolid = $("#solid .option").eq(0).attr("data-hex");
+          $("#lettice .option").eq(0).trigger("change");
+          state.colorRoof = $("#lettice .option").eq(0).attr("data-hex");
+
           pergola.setAddOptionWall();
           pergola.update();
+          pergola.checkSystemsInScene();
         });
       //#endregion
 
@@ -1891,6 +1914,8 @@ export function interfaceGroupInputsComponent(
           .closest(".interface__group")
           .find(".interface__group__head__param")
           .text($(this).find("input").val());
+
+        pergola.setAddOptionWall();
 
         pergola.update();
       });

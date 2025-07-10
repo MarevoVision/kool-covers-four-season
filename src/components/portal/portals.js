@@ -348,7 +348,11 @@ export function removeHandleSystem(
       hideIcon(typeIndex);
       $(".portal-container").hide();
 
-      const subSystems = $("#last-group").find(".option").eq(indexOfMenu);
+      const subSystems = $("#last-group").find(
+        `#${state.currentActiveSystems}`
+      );
+
+      console.log(subSystems, "REMOVED OPTION");
 
       subSystems.removeClass("type_interface_electronic_item--active");
 
@@ -924,8 +928,10 @@ export function portalComponent() {
 
     const portalContent = $(`
       <div class="portal-container">
-        <span class="portal-container__close"></span>
-        ${portaInnerHtml}
+        <div class="portal-container-wrapp">
+          <span class="portal-container__close"></span>
+          ${portaInnerHtml}
+        </div>
       </div>
     `);
 
@@ -1275,6 +1281,18 @@ export function portalComponent() {
             });
 
           if (state.beamSize) {
+            state.endCuts = 1;
+            $("#end-cuts .option")
+              .removeClass("active")
+              .eq(0)
+              .addClass("active");
+
+            $("#end-cuts .option")
+              .eq(0)
+              .closest(".interface__group")
+              .find(".interface__group__head__param")
+              .text($("#end-cuts .option").eq(0).find("input").val());
+
             portalContent.find("#wrap-kit").addClass("disable");
           }
 
@@ -1431,7 +1449,7 @@ export function portalComponent() {
       //#endregion
 
       //#region REMOVE BUTTON
-      removeHandle(portalContent, portalContentTitle, "moodLight", 1, 7);
+      // removeHandle(portalContent, portalContentTitle, "moodLight", 1, 7);
       //#endregion
 
       //#region HANDLE COLOR PICKER
@@ -1523,7 +1541,7 @@ export function portalComponent() {
 
       //#region REMOVE BUTTON
 
-      removeHandle(portalContent, portalContentTitle, "ledLights", 0, 6);
+      // removeHandle(portalContent, portalContentTitle, "ledLights", 0, 6);
       //#endregion
 
       //#region HANDLE COLOR PICKER

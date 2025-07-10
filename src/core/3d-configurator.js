@@ -215,6 +215,9 @@ var threejs_font_helvetiker_regular;
 //#endregion
 
 //#region WIX
+let lefWall;
+let rightWall;
+let backWall;
 
 var isWIX = false;
 var wix_api_ACCESS_TOKEN = "YOUR_ACCESS_TOKEN";
@@ -400,10 +403,10 @@ export const pergolaConst = {
     privacyWall: 1,
   },
   option: {
-    fans: 0,
-    LEDRampLight: 1,
-    LEDRecessed: 2,
-    LEDStrip: 3,
+    fans: 10,
+    LEDRampLight: 11,
+    LEDRecessed: 22,
+    LEDStrip: 33,
   },
   optionNameString: {
     fans: "Fan",
@@ -594,44 +597,30 @@ function mirrorObject(object, value = true) {
 }
 
 export async function toggleBackWall(toggle) {
-  const backWall = GetGroup("wall_back");
-
   // #region turn OFF
-  backWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = toggle;
-      }
-    });
-  });
+  backWall.visible = toggle;
+
+  // backWall.children.forEach((group) => {
+  //   group.traverse((object) => {
+  //     if (object.isMesh) {
+  //       object.visible = toggle;
+  //     }
+  //   });
+  // });
   //  #endregion
 }
 
 export async function toggleLeftWall(toggle) {
-  const lefWall = GetGroup("wall_L");
-
   // #region turn OFF
-  lefWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = toggle;
-      }
-    });
-  });
+  lefWall.visible = toggle;
+
   //  #endregion
 }
 
 export async function toggleRightWall(toggle) {
-  const rightWall = GetGroup("wall_R");
-
   // #region turn OFF
-  rightWall.children.forEach((group) => {
-    group.traverse((object) => {
-      if (object.isMesh) {
-        object.visible = toggle;
-      }
-    });
-  });
+  rightWall.visible = toggle;
+
   //  #endregion
 }
 
@@ -655,7 +644,17 @@ async function StartSettings() {
   getSize(theModel);
 
   PrepareAR();
+
   paramsLoaded = true;
+
+  lefWall = GetGroup("wall_L");
+  lefWall.children.forEach((child) => (child.visible = true));
+
+  rightWall = GetGroup("wall_R");
+  rightWall.children.forEach((child) => (child.visible = true));
+
+  backWall = GetGroup("wall_back");
+  backWall.children.forEach((child) => (child.visible = true));
 
   CreatePergola(theModel);
 
@@ -1810,56 +1809,168 @@ function PrepareAR() {
   modelViewer = $("#marevo_model");
   const arPromt = $("#ar-prompt");
 
+  modelViewer[0].addEventListener("error", (error) => {
+    console.error("🚀 ~ modelViewer error:", error);
+  });
+
   modelViewer[0].addEventListener("ar-status", (event) => {
+    console.log("🚀 ~ modelViewer status:", event.detail.status);
+
     if (event.detail.status == "session-started") {
       arPromt[0].style.display = "block";
+      console.log("🚀 ~ pergola:", pergola);
     } else if (event.detail.status == "not-presenting") {
       arPromt[0].style.display = "none";
       modelViewer[0].resetScene();
 
-      if (currentOS == "Android") {
-        if (pergolaSettings.mountingWall_Back && pergola != null) {
-          pergola.changeMountingWallVisibility(
-            pergolaSettings.mountingWall_Back,
-            PergolaElementOrientSide.Back,
-            true
-          );
-        }
-
-        if (pergolaSettings.mountingWall_Left && pergola != null) {
-          pergola.changeMountingWallVisibility(
-            pergolaSettings.mountingWall_Left,
-            PergolaElementOrientSide.Left,
-            true
-          );
-        }
-
-        if (pergolaSettings.mountingWall_Right && pergola != null) {
-          pergola.changeMountingWallVisibility(
-            pergolaSettings.mountingWall_Right,
-            PergolaElementOrientSide.Right,
-            true
-          );
-        }
+      if (currentOS == "Android" && pergola) {
+        toggleBackWall(state.backWall);
+        toggleLeftWall(state.leftWall);
+        toggleRightWall(state.rightWall);
       }
+
+      // scene.getObjectByName("sceneFloor").visible = true;
     } else {
       arPromt[0].style.display = "none";
     }
   });
 }
 
-function OpenAR() {
-  ComputeMorphedAttributes();
+function cleanSceneForAR(root) {
+  const objectsToRemove = [];
+  const singleMeshBox = new THREE.Box3();
 
-  // //Remove wall
-  // toggleBackWall(false);
-  // toggleLeftWall(false);
-  // toggleRightWall(false);
+  root.traverse((child) => {
+    if (child.isMesh) {
+      let isInvalid = false;
 
-  ImportScene(scene);
+      if (!child.geometry) {
+        console.warn(
+          `!!! Mesh without geometry will be removed:`,
+          child.name || child.uuid
+        );
+        isInvalid = true;
+      } else {
+        const pos = child.geometry.attributes?.position;
+        if (!pos || pos.count === 0) {
+          console.warn(
+            `!!! Mesh withiout vertices will be removed:`,
+            child.name || child.uuid
+          );
+          isInvalid = true;
+        }
+      }
+
+      if (isInvalid) {
+        objectsToRemove.push(child);
+        return;
+      }
+
+      try {
+        singleMeshBox.setFromObject(child, true);
+
+        const { min, max } = singleMeshBox;
+        if (
+          !isFinite(min.x) ||
+          !isFinite(min.y) ||
+          !isFinite(min.z) ||
+          !isFinite(max.x) ||
+          !isFinite(max.y) ||
+          !isFinite(max.z)
+        ) {
+          console.warn(
+            `!!! BoundingBox has NaN/Infinity and will be removed:`,
+            child.name || child.uuid,
+            singleMeshBox
+          );
+          isInvalid = true;
+        }
+      } catch (error) {
+        console.error(
+          `!!! This mesh has invalid BoundingBox and will be removed:`,
+          child.name || child.uuid,
+          error
+        );
+        isInvalid = true;
+      }
+
+      if (isInvalid) {
+        objectsToRemove.push(child);
+      }
+    }
+  });
+
+  for (const object of objectsToRemove) {
+    if (object.parent) {
+      object.parent.remove(object);
+    }
+  }
+
+  if (objectsToRemove.length > 0) {
+    console.log(`Removed ${objectsToRemove.length} invalid meshes`);
+  } else {
+    console.log(`There are no invalid meshes to remove`);
+  }
 }
 
-// eslint-disable-next-line no-unused-vars
+async function OpenAR() {
+  const backBeam = GetMesh("back_beam_wall");
+  const backBeamL = GetMesh("beam_wall_L");
+  const backBeamR = GetMesh("beam_wall_L001");
+
+  // // remove walls
+  if (pergola) {
+    toggleBackWall(false);
+    toggleLeftWall(false);
+    toggleRightWall(false);
+
+    backBeam.visible = false;
+    backBeamL.visible = false;
+    backBeamR.visible = false;
+  }
+
+  if (currentOS !== "Android") {
+    ComputeMorphedAttributes();
+  }
+
+  // const sceneToExport = scene.clone();
+
+  cleanSceneForAR(scene);
+
+  if (scene) {
+    // scene.traverse((object) => {
+    //   if (object.isMesh) {
+    //     object.geometry.boundingBox = null;
+    //     object.geometry.boundingSphere = null;
+    //   }
+    // });
+    // const box = new THREE.Box3().setFromObject(scene, true);
+    // const { min, max } = box;
+    // if (
+    //   !isFinite(min.x) ||
+    //   !isFinite(min.y) ||
+    //   !isFinite(min.z) ||
+    //   !isFinite(max.x) ||
+    //   !isFinite(max.y) ||
+    //   !isFinite(max.z)
+    // ) {
+    //   console.error("!!! Bounding Box is not valid: ", box);
+    // }
+  }
+  try {
+    await modelViewer[0].importScene(scene);
+    await modelViewer[0].activateAR();
+
+    toggleBackWall(state.backWall);
+    toggleLeftWall(state.leftWall);
+    toggleRightWall(state.rightWall);
+
+    pergola.setAddOptionWall();
+  } catch (error) {
+    console.error("!!! Error while importing scene for AR:", error);
+  }
+}
+
 export function OpenARorQR() {
   console.log(currentOS, "OS");
 
@@ -1878,11 +1989,6 @@ export function OpenARorQR() {
   $("#ar").show();
 }
 
-//IMPORT
-async function ImportScene(newScene) {
-  await modelViewer[0].importScene(newScene);
-  modelViewer[0].activateAR();
-}
 //#endregion
 
 //#region URL PARAMETERS
@@ -2450,7 +2556,7 @@ export function ComputeMorphedAttributes() {
     if (object.isMesh) {
       var computeMorphedAttributesValue = computeMorphedAttributes(object);
 
-      console.log(computeMorphedAttributesValue);
+      // console.log(computeMorphedAttributesValue);
 
       object.geometry.computeMorphedAttributes = computeMorphedAttributesValue;
     }
@@ -4450,121 +4556,169 @@ export class PergolaObject {
           if (system.active) {
             switch (system.type) {
               case pergolaConst.systemType.privacyWall:
-                const frame = system.object;
+                {
+                  const hasChanged =
+                    !system.prevState ||
+                    system.prevState.beamSize !== state.beamSize ||
+                    system.prevState.steel !== state.steel ||
+                    system.prevState.width !== state.width ||
+                    system.prevState.slatsSize !== state.slatsSize ||
+                    system.prevState.length !== state.length ||
+                    system.prevState.height !== state.height;
 
-                const isDirectionX = !system.direction;
+                  if (hasChanged) {
+                    const frame = system.object;
 
-                let post = isDirectionX
-                  ? scene.getObjectByName("post_3x3002")
-                  : scene.getObjectByName("post_3x3002");
+                    const isDirectionX = !system.direction;
 
-                let blade30 = isDirectionX
-                  ? scene.getObjectByName("privacy_wall_2x2")
-                  : scene.getObjectByName("privacy_wall_2x2_side");
+                    let post = isDirectionX
+                      ? scene.getObjectByName("post_3x3002")
+                      : scene.getObjectByName("post_3x3002");
 
-                let blade60 = isDirectionX
-                  ? scene.getObjectByName("privacy_wall_2x6")
-                  : scene.getObjectByName("privacy_wall_2x6_side");
+                    let blade30 = isDirectionX
+                      ? scene.getObjectByName("privacy_wall_2x2")
+                      : scene.getObjectByName("privacy_wall_2x2_side");
 
-                const finalBlade = state.slatsSize ? blade30 : blade60;
+                    let blade60 = isDirectionX
+                      ? scene.getObjectByName("privacy_wall_2x6")
+                      : scene.getObjectByName("privacy_wall_2x6_side");
 
-                const intervalPost = 2.5;
-                const half = system.spanWidth / 2;
-                const countPosts = Math.floor(system.spanWidth / intervalPost);
-                const direction = isDirectionX ? "x" : "z";
+                    const finalBlade = state.slatsSize ? blade30 : blade60;
 
-                const mirroredPoints = generateMidpoints(
-                  this.addOffset(post.position, direction, half),
-                  this.addOffset(post.position, direction, -half),
-                  countPosts
-                );
+                    const intervalPost = 2.5;
+                    const half = system.spanWidth / 2;
+                    const countPosts = Math.floor(
+                      system.spanWidth / intervalPost
+                    );
+                    const direction = isDirectionX ? "x" : "z";
 
-                // 🧹 Очистка старих постів
-                for (let i = frame.children.length - 1; i >= 0; i--) {
-                  const child = frame.children[i];
-                  if (
-                    child.name &&
-                    child.name.includes("slats_post") &&
-                    child.uuid !== post.uuid
-                  ) {
-                    frame.remove(child);
-                  }
-                }
+                    const mirroredPoints = generateMidpoints(
+                      this.addOffset(post.position, direction, half),
+                      this.addOffset(post.position, direction, -half),
+                      countPosts
+                    );
 
-                // ✨ Генерація нових постів
-                const generatedPosts = [];
+                    // 🧹 Очистка старих постів
+                    for (let i = frame.children.length - 1; i >= 0; i--) {
+                      const child = frame.children[i];
+                      if (
+                        child.name &&
+                        child.name.includes("slats_post") &&
+                        child.uuid !== post.uuid
+                      ) {
+                        frame.remove(child);
+                      }
+                    }
 
-                for (let i = 0; i < mirroredPoints.length; i++) {
-                  const newPost = post.clone();
-                  newPost.position.x = post.position.x;
-                  newPost.position.z = post.position.z;
+                    // ✨ Генерація нових постів
+                    const generatedPosts = [];
 
-                  if (isDirectionX) {
-                    newPost.position.x = mirroredPoints[i].x;
-                  } else {
-                    newPost.position.z = mirroredPoints[i].z;
-                  }
+                    for (let i = 0; i < mirroredPoints.length; i++) {
+                      const newPost = post.clone();
+                      newPost.position.x = post.position.x;
+                      newPost.position.z = post.position.z;
 
-                  newPost.name = "slats_post_clone";
-                  this.changeObjectVisibility(true, newPost);
-                  frame.add(newPost);
-                  generatedPosts.push(newPost);
-                }
+                      if (isDirectionX) {
+                        newPost.position.x = mirroredPoints[i].x;
+                      } else {
+                        newPost.position.z = mirroredPoints[i].z;
+                      }
 
-                // remove slats
-                for (let i = frame.children.length - 1; i >= 0; i--) {
-                  const child = frame.children[i];
-                  if (child.name && child.name.includes("slat_clone")) {
-                    frame.remove(child);
-                  }
-                }
+                      newPost.name = "slats_post_clone";
+                      this.changeObjectVisibility(true, newPost);
+                      frame.add(newPost);
+                      generatedPosts.push(newPost);
+                    }
 
-                const gapShutter = !state.slatsSize ? 0 : 0.03;
-                const heightShutter = !state.slatsSize ? 0.15 : 0.06;
-                const fullShutterHeight = heightShutter + gapShutter;
-                const totalHeight = this.getMeters(state.height);
-                const countShutter = Math.floor(
-                  totalHeight / fullShutterHeight
-                );
+                    // remove slats
+                    for (let i = frame.children.length - 1; i >= 0; i--) {
+                      const child = frame.children[i];
+                      if (child.name && child.name.includes("slat_clone")) {
+                        frame.remove(child);
+                      }
+                    }
 
-                for (let p = 0; p < generatedPosts.length; p++) {
-                  for (let i = 1; i < countShutter; i++) {
-                    const newBlade = finalBlade.clone();
-                    newBlade.position.y = i * fullShutterHeight;
+                    const gapShutter = !state.slatsSize ? 0 : 0.03;
+                    const heightShutter = !state.slatsSize ? 0.15 : 0.06;
+                    const fullShutterHeight = heightShutter + gapShutter;
+                    const totalHeight = this.getMeters(state.height);
+                    const countShutter = Math.floor(
+                      totalHeight / fullShutterHeight
+                    );
 
-                    newBlade.name = "slat_clone";
-                    this.changeObjectVisibility(true, newBlade);
-                    frame.add(newBlade);
-                  }
-                }
+                    for (let p = 0; p < generatedPosts.length; p++) {
+                      for (let i = 1; i < countShutter; i++) {
+                        const newBlade = finalBlade.clone();
+                        newBlade.position.y = i * fullShutterHeight;
 
-                if (!generatedPosts.length) {
-                  for (let i = 1; i < countShutter; i++) {
-                    const newBlade = finalBlade.clone();
-                    newBlade.position.y = i * fullShutterHeight;
+                        newBlade.name = "slat_clone";
+                        this.changeObjectVisibility(true, newBlade);
+                        frame.add(newBlade);
+                      }
+                    }
 
-                    newBlade.name = "slat_clone";
-                    this.changeObjectVisibility(true, newBlade);
-                    frame.add(newBlade);
+                    if (!generatedPosts.length) {
+                      for (let i = 1; i < countShutter; i++) {
+                        const newBlade = finalBlade.clone();
+                        newBlade.position.y = i * fullShutterHeight;
+
+                        newBlade.name = "slat_clone";
+                        this.changeObjectVisibility(true, newBlade);
+                        frame.add(newBlade);
+                      }
+                    }
+
+                    system.prevState = {
+                      slatsSize: state.slatsSize,
+                      steel: state.steel,
+                      beamSize: state.beamSize,
+                      width: state.width,
+                      length: state.length,
+                      height: state.height,
+                    };
                   }
                 }
 
                 break;
 
               case pergolaConst.systemType.autoShade:
-                const material = system.object.children[1].material;
-                const zipPost = !system.direction
-                  ? system.object.getObjectByName("post_3x3003")
-                  : system.object.getObjectByName("post_3x3004");
-                this.changeObjectVisibility(false, zipPost);
+                {
+                  const hasChanged =
+                    !system.prevState ||
+                    system.prevState.beamSize !== state.beamSize ||
+                    system.prevState.steel !== state.steel ||
+                    system.prevState.width !== state.width ||
+                    system.prevState.slatsSize !== state.slatsSize ||
+                    system.prevState.length !== state.length ||
+                    system.prevState.height !== state.height;
 
-                material.color.set(state.colorZip);
-                system.object.children[0].material.color.set(state.colorBody);
+                  if (hasChanged) {
+                    const material = system.object.children[1].material;
+                    const zipPost = !system.direction
+                      ? system.object.getObjectByName("post_3x3003")
+                      : system.object.getObjectByName("post_3x3004");
+                    this.changeObjectVisibility(false, zipPost);
 
-                material.opacity =
-                  state.transparency === null
-                    ? 0
-                    : 1 - state.transparency / 100;
+                    material.color.set(state.colorZip);
+                    system.object.children[0].material.color.set(
+                      state.colorBody
+                    );
+
+                    material.opacity =
+                      state.transparency === null
+                        ? 0
+                        : 1 - state.transparency / 100;
+
+                    system.prevState = {
+                      slatsSize: state.slatsSize,
+                      steel: state.steel,
+                      beamSize: state.beamSize,
+                      width: state.width,
+                      length: state.length,
+                      height: state.height,
+                    };
+                  }
+                }
 
                 break;
 
@@ -7499,8 +7653,8 @@ export class PergolaObject {
       FR_point.z
     );
 
-    const newRL = offsetVector(RL_point, { z: 0.1 });
-    const newFR = offsetVector(FR_point, { z: -0.1 });
+    const newRL = offsetVector(RL_point, { z: 0.05 });
+    const newFR = offsetVector(FR_point, { z: -0.05 });
 
     const newRLrafter = offsetVector(RL_point, {
       x: this.inchesToMeters(state.overhang) - 0.3,
@@ -7528,8 +7682,7 @@ export class PergolaObject {
     const pointForRafterSolid = generateMidpoints(
       state.rafter ? RL_point : newRLrafterSingle,
       state.rafter ? FR_point : newFRrafterSingle,
-      countRafters,
-      true
+      countRafters
     );
 
     pergola.settings.countRafter = pointForRafter;
@@ -7606,12 +7759,25 @@ export class PergolaObject {
         case typeSolid:
           if (state.tails) {
             ChangeGlobalMorph("1", 0);
+            const preparedTailsPoints = [
+              !state.leftWall || state.wallOption !== 2
+                ? state.rafter
+                  ? newRL
+                  : newRLrafterSingle
+                : {},
+              ...pointForRafterSolid,
+              !state.rightWall || state.wallOption !== 2
+                ? state.rafter
+                  ? newFR
+                  : newFRrafterSingle
+                : {},
+            ];
 
-            processRafterCut.call(this, rafterShotType, pointForRafterSolid);
+            processRafterCut.call(this, rafterShotType, preparedTailsPoints);
             processRafterCut.call(
               this,
               rafterShotTypeBack,
-              pointForRafterSolid
+              preparedTailsPoints
             );
           }
 
@@ -8355,6 +8521,7 @@ export class PergolaObject {
 
   getRoofElement(type = "beams", name = null) {
     let element;
+    const arScale = 1.01;
 
     if (type === "headerBackWall") {
       model.traverse((o) => {
@@ -8369,6 +8536,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "head_bevel_1") {
           element = o;
+          element.scale.z = arScale;
         }
       });
     }
@@ -8385,6 +8553,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "head_miter_1") {
           element = o;
+          element.scale.z = arScale;
         }
       });
     }
@@ -8401,6 +8570,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "head_corbel_1") {
           element = o;
+          element.scale.z = arScale;
         }
       });
     }
@@ -8417,6 +8587,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "head_scallop_1") {
           element = o;
+          element.scale.z = arScale;
         }
       });
     }
@@ -8807,6 +8978,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "beam") {
           element = o;
+          element.scale.y = 0.9999;
         }
       });
     }
@@ -8815,6 +8987,7 @@ export class PergolaObject {
       model.traverse((o) => {
         if (o.name === "beam_Y") {
           element = o;
+          element.scale.y = 0.9999;
         }
       });
     }
@@ -9434,9 +9607,10 @@ export class PergolaObject {
   checkFansOnPergola() {
     if (
       state.roofType === 1 &&
-      state.electro.has(pergolaConst.optionNameString.fans)
+      state.electro.has(pergolaConst.optionNameString.fans) &&
+      state.skyLight
     ) {
-      if (!countVisibleObjectsByName(model, "fan", true, true)) {
+      if (!countVisibleObjectsByName(model, "fan", true)) {
         const subSystems = $("#last-group").find(".option").eq(1);
 
         subSystems.removeClass("type_interface_electronic_item--active");
@@ -9549,7 +9723,7 @@ export class PergolaObject {
     const { COMBO_LATTICE_CENTER_point } = this.getComboCenterPoints();
     const { FL_post_point, FR_post_point } = this.getPostPointsCombo();
 
-    let overhangOffset = this.inchesToMeters(state.overhang);
+    let overhangOffset = this.inchesToMeters(state.overhang) / 2;
 
     let roofPercent = 0.5;
 
@@ -9563,13 +9737,11 @@ export class PergolaObject {
       state.roofType == 2 ? FC_point.clone() : FL_point.clone();
     let FR_StartPoint = FR_point.clone();
 
-    if (!state.backWall) {
-      RL_StartPoint = new THREE.Vector3(
-        RL_StartPoint.x,
-        RL_StartPoint.y,
-        RL_StartPoint.z + overhangOffset
-      );
-    }
+    RL_StartPoint = new THREE.Vector3(
+      RL_StartPoint.x,
+      RL_StartPoint.y,
+      RL_StartPoint.z + overhangOffset
+    );
 
     FL_StartPoint = new THREE.Vector3(
       FL_StartPoint.x,
@@ -10016,10 +10188,6 @@ export class PergolaObject {
     backBeamR.visible = false;
     $("#wall-option").show();
 
-    const backSpanSystem = pergola.span.objects.some(
-      (span) => span.side === pergolaConst.side.Back && span.isSystemSet
-    );
-
     switch (true) {
       // freestanding
       case state.wallOption === 0:
@@ -10040,13 +10208,11 @@ export class PergolaObject {
 
       // wall-mounted
       case state.wallOption === 1:
-        if (!backSpanSystem) {
-          $("#back").addClass("active");
+        $("#back").addClass("active");
 
-          state.backWall = true;
+        state.backWall = true;
 
-          toggleBackWall(true);
-        }
+        toggleBackWall(true);
 
         break;
 
@@ -10082,18 +10248,28 @@ export class PergolaObject {
 
       // roof-mounted
       case state.wallOption === 3:
-        if (!backSpanSystem) {
-          $("#back").addClass("active");
+        $("#back").addClass("active");
 
-          state.backWall = true;
+        state.backWall = true;
 
-          toggleBackWall(true);
-        }
+        toggleBackWall(true);
 
         if (!state.roofType) {
-          ChangeGlobalMorph("on_roof", state.directionRoof ? 0.68 : 0.73);
+          ChangeGlobalMorph(
+            "on_roof",
+            state.directionRoof ? 0.6 : state.endCuts < 3 ? 0.73 : 0.68
+          );
         } else {
-          ChangeGlobalMorph("on_roof", state.beamSize ? 0.75 : 0.85);
+          ChangeGlobalMorph(
+            "on_roof",
+            state.beamSize
+              ? state.endCuts < 3
+                ? 0.73
+                : 0.7
+              : state.endCuts < 3
+              ? 0.85
+              : 0.75
+          );
         }
 
         break;
@@ -10499,14 +10675,14 @@ export class PergolaObject {
         offsetNegativeSide = 0;
         offsetNegative = 0;
         offsetSide = 0;
-        offset = state.roofType === 1 && !state.beamSize ? 0 : 0.05;
+        offset = !state.beamSize ? 0 : 0.05;
         break;
 
       case 9:
         offsetNegativeSide = 0;
         offsetNegative = 0;
         offsetSide = 0.14;
-        offset = state.roofType === 1 && !state.beamSize ? 0.14 : 0.18;
+        offset = !state.beamSize ? 0.14 : 0.18;
         break;
 
       case 10:
@@ -10514,7 +10690,7 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.27;
-        offset = state.roofType === 1 && !state.beamSize ? 0.28 : 0.33;
+        offset = !state.beamSize ? 0.28 : 0.33;
 
         break;
 
@@ -10523,7 +10699,7 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.39;
-        offset = state.roofType === 1 && !state.beamSize ? 0.4 : 0.48;
+        offset = !state.beamSize ? 0.4 : 0.48;
         break;
 
       case 12:
@@ -10531,7 +10707,7 @@ export class PergolaObject {
         offsetNegative = 0;
 
         offsetSide = 0.52;
-        offset = state.roofType === 1 && !state.beamSize ? 0.58 : 0.62;
+        offset = !state.beamSize ? 0.58 : 0.62;
 
         break;
     }
@@ -12782,9 +12958,9 @@ function AssignUI() {
     changeSceneTime($(this).hasClass("active") ? "Night" : "Day");
   });
 
-  $("#js-showModalQRcode").on("click", function () {
-    PergolaOpenARorQR();
-  });
+  // $("#js-showModalQRcode").on("click", function () {
+  //   PergolaOpenARorQR();
+  // });
 
   $("#js-showModalShare").on("click", function () {
     var data_url = GetURLWithParameters();
@@ -13661,7 +13837,6 @@ export async function CreateImageList() {
 
   const dist = (sizeValue / 40) * 10 + deltaDist;
 
-  // console.log(canvas);
   const cameraImageViews_Global = [
     {
       id: "view_1.png",
@@ -13692,7 +13867,15 @@ export async function CreateImageList() {
 
   share_RenderImages = [];
 
-  pergola.update();
+  if (state.leftWall) {
+    toggleLeftWall(false);
+  }
+  if (state.rightWall) {
+    toggleRightWall(false);
+  }
+  if (state.backWall) {
+    toggleBackWall(false);
+  }
 
   for (let index = 0; index < cameraImageViews_Global.length; index++) {
     const element = cameraImageViews_Global[index];
@@ -13713,13 +13896,13 @@ export async function CreateImageList() {
 
     changeDimmensionRender(true, element, index, element.rotate);
     TakeImage(element, "ar_pop_share_image");
-    await new Promise((resolve) => setTimeout(resolve, 1));
+
     changeDimmensionRender(false);
   }
 
-  // state.backWall = oldBackWall;
-  // state.leftWall = oldLeftWall;
-  // state.rightWall = oldRightWall;
+  toggleLeftWall(state.leftWall);
+  toggleRightWall(state.rightWall);
+  toggleBackWall(state.backWall);
 
   pdfImg.img = share_RenderImages[0].src;
   pdfImgTop.img = share_RenderImages[1].src;

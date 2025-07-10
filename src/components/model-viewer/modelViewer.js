@@ -28,13 +28,6 @@ export async function modelViewerComponent(container) {
 
   componentContent.find("#js-showModalQRcode").on("click", () => {
     OpenARorQR();
-
-
-    // if (
-    //   getMobileOperatingSystem() == "Android" ||
-    //   getMobileOperatingSystem() == "iOS"
-    // ) {
-    // }
   });
 
   componentContent.find(".full-screen").on("click", () => {

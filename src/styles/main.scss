@@ -17,6 +17,12 @@ body {
   overflow: auto !important;
 }
 
+#app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
 .main-content {
   display: flex;
   height: calc(var(--vh) * 100) !important;
@@ -35,6 +41,7 @@ body {
       position: absolute;
       opacity: 0.3;
       z-index: 0;
+      top: 0;
     }
   }
 

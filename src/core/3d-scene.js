@@ -46,7 +46,7 @@ export let camera;
 export let controls;
 export let envMap;
 export let composer;
-export let renderScale = 0.8;
+export let renderScale = 0.7;
 export let renderAntialias = true;
 
 var renderPass;
@@ -205,7 +205,6 @@ export function create3DScene(
   //      Init SCENE, canvas, RENDERER
   // ********************************************
   scene = new THREE.Scene();
-
   scene.background = new THREE.Color(BACKGROUND_COLOR);
   //scene.background = null;
   canvas = document.getElementById("ar_model_view");
@@ -413,7 +412,7 @@ export function create3DScene(
   floor.rotation.x = -0.5 * Math.PI;
   floor.receiveShadow = true;
   floor.position.y = MODEL_CENTER_POSITION + correctionFloor;
-
+  floor.name = "sceneFloor";
   scene.add(floor);
 
   // ********************************************

@@ -14,7 +14,8 @@
   justify-content: center;
   align-items: center;
   padding: 36px 30px;
-  height: fit-content;
+  height: 100%;
+  top: 0;
 }
 
 .color-option {
@@ -23,16 +24,16 @@
 
 .sum__page {
   position: relative;
-  height: fit-content;
+  height: 100%;
   width: 100%;
   padding: 30px;
   border: 1px solid rgba($color: vars.$second-color, $alpha: 0.3);
   background-color: vars.$white-color;
   max-width: 535px;
   @include mixins.radius();
+  overflow: scroll;
 
   display: flex;
-  justify-content: center;
   align-items: center;
   flex-direction: column;
 
