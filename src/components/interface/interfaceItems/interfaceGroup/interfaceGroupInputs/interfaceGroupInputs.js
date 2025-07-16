@@ -356,7 +356,7 @@ export function interfaceGroupInputsComponent(
                     <label class="type_interface_radio-model_label" for="blade">${stringRoofType[1]}</label>
                   </div>
 
-                  <div class="type_interface_radio-model_item option" id="combo-roof">
+                  <div class="type_interface_radio-model_item option" id="combo-roof" data-text="For larger pergolas" >
                     <input data-value="2" class="type_interface_radio-model_option type_interface_radio-model_option--combo" 
                         type="radio" id="blade" name="fav_language" value="${stringRoofType[2]}"
                         style="height: 90px"
@@ -398,7 +398,7 @@ export function interfaceGroupInputsComponent(
             showIcon(12);
             state.rain = false;
             state.directionRoof = false;
-            state.beamSize = 1;
+            // state.beamSize = 1;
           }
 
           if (state.roofType === type) {
@@ -458,9 +458,9 @@ export function interfaceGroupInputsComponent(
             state.beamSize = 1;
 
             $("#solid").hide();
-            // $("#lettice .option")
-            //   .eq($("#lettice .option").length - 1)
-            //   .trigger("change");
+            $("#lettice .option")
+              .eq($("#lettice .option").length - 1)
+              .trigger("change");
             window.colorLattice();
           }
 
@@ -481,7 +481,9 @@ export function interfaceGroupInputsComponent(
             state.endCuts = 1;
             state.thickness = 3;
             state.rain = false;
-            // $("#solid .option").eq(0).trigger("change");
+            $("#solid .option")
+              .eq($("#lettice .option").length)
+              .trigger("change");
 
             window.colorSolidInit(false);
           }
@@ -494,6 +496,12 @@ export function interfaceGroupInputsComponent(
             ChangeGlobalMorph("3-6", 1.65);
 
             state.rain = false;
+            $("#solid .option")
+              .eq($("#lettice .option").length)
+              .trigger("change");
+            $("#lettice .option")
+              .eq($("#lettice .option").length - 1)
+              .trigger("change");
           }
 
           // #region RE-INIT thickness
@@ -544,11 +552,6 @@ export function interfaceGroupInputsComponent(
             .text($(this).val());
 
           // updatePostSize();
-
-          $("#solid .option").eq(0).trigger("change");
-          state.colorRoofSolid = $("#solid .option").eq(0).attr("data-hex");
-          $("#lettice .option").eq(0).trigger("change");
-          state.colorRoof = $("#lettice .option").eq(0).attr("data-hex");
 
           pergola.setAddOptionWall();
           pergola.update();
@@ -1039,7 +1042,7 @@ export function interfaceGroupInputsComponent(
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#513a2a",
+          hex: "#E6D3B5",
         },
         {
           name: "Bronze",
@@ -1077,14 +1080,14 @@ export function interfaceGroupInputsComponent(
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#513a2a",
+          hex: "#E6D3B5",
         },
         {
           name: "Brown",
           value: "Brown",
           image: "bronze.png",
           id: "Brown",
-          hex: "#804030",
+          hex: "#513a2a",
         },
         {
           name: "Sand",
@@ -1098,7 +1101,7 @@ export function interfaceGroupInputsComponent(
           value: "Gray",
           image: "bronze.png",
           id: "Gray",
-          hex: "#e3d9c6",
+          hex: "#5d6970",
         },
         {
           name: "Black",
@@ -1136,14 +1139,14 @@ export function interfaceGroupInputsComponent(
           value: "Ivory",
           image: "ivory.png",
           id: "Ivory",
-          hex: "#513a2a",
+          hex: "#E6D3B5",
         },
         {
           name: "Brown",
           value: "Brown",
           image: "bronze.png",
           id: "Brown",
-          hex: "#804030",
+          hex: "#513a2a",
         },
         {
           name: "Sand",
@@ -1157,7 +1160,7 @@ export function interfaceGroupInputsComponent(
           value: "Gray",
           image: "bronze.png",
           id: "Gray",
-          hex: "#e3d9c6",
+          hex: "#5d6970",
         },
         {
           name: "Black",
@@ -1399,6 +1402,7 @@ export function interfaceGroupInputsComponent(
               $this.find("input").prop("checked", true);
               stringNameRoofSolidColor = nameOfColor;
               solidColorString = nameOfColor;
+              state.colorRoofSolid = hex;
 
               //MAIN INIT COLOR
               setTimeout(
@@ -1446,6 +1450,7 @@ export function interfaceGroupInputsComponent(
               $this.find("input").prop("checked", true);
               stringNameRoofLetticeColor = nameOfColor;
               letticeColorString = nameOfColor;
+              state.colorRoof = hex;
 
               const resultColorRoof = typeLettice
                 ? letticeColorString

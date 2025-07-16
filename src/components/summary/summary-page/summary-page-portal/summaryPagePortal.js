@@ -99,7 +99,7 @@ export function summaryPagePortalComponent(container, downloadPDF = true) {
           <div class="form__check">
             <input type="checkbox" id="agree" name="agree" class="form__check-input">
             <label for="agree" class="form__check__label">
-I consent to Chaya Outdoors LLC using my personal information for sales, marketing, research, and targeting purposes and agree to the Terms & Conditions.
+I consent to Kool Covers using my personal information for sales, marketing, research, and targeting purposes and agree to the Terms & Conditions.
             </label>
           </div>
 

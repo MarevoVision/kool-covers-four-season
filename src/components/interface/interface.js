@@ -144,12 +144,12 @@ export const groups = [
     type: typesInputs.postSize,
     initValuePostSize: state.postSize,
   },
-  {
-    title: "End Cut",
-    param: stringPostType[state.postSize],
-    type: typesInputs.endCuts,
-    initValuePostSize: state.postSize,
-  },
+  // {
+  //   title: "End Cut",
+  //   param: stringPostType[state.postSize],
+  //   type: typesInputs.endCuts,
+  //   initValuePostSize: state.postSize,
+  // },
   {
     title: "Frame Color",
     param: state.colorBody,

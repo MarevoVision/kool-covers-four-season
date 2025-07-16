@@ -8,6 +8,33 @@
   font-family: "Barlow", serif;
 }
 
+@mixin disabled-pop {
+  &:hover::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: vars.$second-color;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 12px;
+    margin-top: 5px;
+    z-index: 1000;
+
+    white-space: nowrap;
+    font-family: Barlow;
+    font-weight: 400;
+    font-style: Regular;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0%;
+    text-align: center;
+  }
+}
+
 @mixin font-family-second {
   font-family: "Staatliches", serif;
 }

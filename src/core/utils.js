@@ -208,6 +208,26 @@ export function setMaterialProperty(name, property, value) {
   });
 }
 
+export function changeShapekeyNameForObject(object, keyName, newKeyName) {
+  if (!object) return;
+
+  function processObject(obj) {
+    if (obj.isMesh && obj.morphTargetDictionary) {
+      if (keyName in obj.morphTargetDictionary) {
+        const morphIndex = obj.morphTargetDictionary[keyName];
+        obj.morphTargetDictionary[newKeyName] = morphIndex;
+        delete obj.morphTargetDictionary[keyName];
+      }
+    }
+
+    if (obj.children && obj.children.length > 0) {
+      obj.children.forEach((child) => processObject(child));
+    }
+  }
+
+  processObject(object);
+}
+
 export const TEXTURES = {
   inner: {
     //! WALLS

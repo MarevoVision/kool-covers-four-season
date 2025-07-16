@@ -29,8 +29,10 @@
     @include mixins.h3;
 
     &.disable {
-      pointer-events: none;
-      opacity: 0.5;
+      // pointer-events: none;
+      opacity: 0.65;
+
+      @include mixins.disabled-pop;
     }
 
     &.active {
@@ -189,8 +191,12 @@
     }
 
     &.disable {
-      opacity: 0.5;
-      pointer-events: none;
+      opacity: 0.65;
+      // pointer-events: none;
+      cursor: not-allowed;
+
+
+      @include mixins.disabled-pop;
     }
 
     &-img {

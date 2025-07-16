@@ -166,8 +166,6 @@
 
   min-width: 295px;
 
-
-
   #disable-thickness-massage {
     position: absolute;
     cursor: pointer;
@@ -259,17 +257,11 @@
       gap: 6px;
 
       &.disable {
-        opacity: 0.5;
-        pointer-events: none;
+        opacity: 0.65;
+        // pointer-events: none;
         cursor: not-allowed;
 
-        // &:hover {
-        //   &::after {
-        //     content: "";
-        //     width: 100px;
-        //     height: 50px;
-        //   }
-        // }
+        @include mixins.disabled-pop;
       }
 
       &__cyrcle {
@@ -1039,4 +1031,14 @@
   text-decoration: underline;
   text-decoration-style: solid;
   text-decoration-thickness: 0%;
+}
+
+.select-inputs {
+  &.disable {
+    opacity: 0.65;
+    // pointer-events: none;
+    cursor: not-allowed;
+
+    @include mixins.disabled-pop;
+  }
 }

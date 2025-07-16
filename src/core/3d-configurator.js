@@ -1919,6 +1919,8 @@ async function OpenAR() {
   const backBeamR = GetMesh("beam_wall_L001");
 
   // // remove walls
+  ChangeGlobalMorph("+6", 0);
+
   if (pergola) {
     toggleBackWall(false);
     toggleLeftWall(false);
@@ -6195,6 +6197,7 @@ export class PergolaObject {
 
   makeSolidAndComboRoof() {
     const wrapKitObject = scene.getObjectByName("wrap_kit");
+    wrapKitObject.scale.y = 0.999;
     // const wrapKitObjectRain = scene.getObjectByName("solid_non_roof_rain_mesh001");
     const backBeamObject = scene.getObjectByName("back_beam");
     const solidRainObject = scene.getObjectByName(
@@ -7774,11 +7777,13 @@ export class PergolaObject {
             ];
 
             processRafterCut.call(this, rafterShotType, preparedTailsPoints);
-            processRafterCut.call(
-              this,
-              rafterShotTypeBack,
-              preparedTailsPoints
-            );
+            if (!state.backWall || state.wallOption === 3) {
+              processRafterCut.call(
+                this,
+                rafterShotTypeBack,
+                preparedTailsPoints
+              );
+            }
           }
 
           break;

@@ -413,8 +413,6 @@ const pdf_icon_email_url = "public/img/mail.png";
 export async function createPDF(opt = "open") {
   await CreateImageList();
 
-  console.log(pdfImg);
-
   const uiPdfPhone = "(713) 893-1915";
   const uiPdfEmail = "info@koolcovers.com";
   const uiPdfWeb = "www.koolcovershouston.com";

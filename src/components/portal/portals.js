@@ -9,7 +9,10 @@ import {
 } from "../../core/3d-configurator";
 import { removeFromUrlSystemBySideAndtype } from "../../core/customFunctions/initiSubSystem";
 import { state } from "../../core/settings";
-import { deleteActiveClassFromContainerRadioType } from "../Interface/interface";
+import {
+  deleteActiveClassFromContainerRadioType,
+  stringEndCuts,
+} from "../Interface/interface";
 import { updateTextParam } from "../Interface/interfaceItems/interfaceGroup/interfaceGroupInputs/interfaceGroupInputs";
 import { generateRangeHTML } from "../Interface/interfaceItems/interfaceGroup/interfaceGroupInputs/range/generateRange";
 import "./portals.scss";
@@ -530,24 +533,44 @@ export function portalComponent() {
 
           <h3 class="portal-container__title">${bladeRotation[0].title}</h3>
 
+            <div class="radio-inputs"> 
+                 <div class="main_container" style="margin-bottom: 20px" id="beam-size">
+                  <div class="canvas_menu__title">Beam Size:</div>
+
+                  <ul class="radio__container">
+                    <li class="radio__container__item" id="0" data-text="This option is available only with Elitewood">
+                      <div class="radio__container__item__cyrcle"></div>
+
+                      <span class="radio__container__item__text">Elitewood</span>
+                     </li>
+      
+                     <li class="radio__container__item" id="1" data-text="Classic beams can't be selected when Pergola Wrap Kit is active">
+                       <div class="radio__container__item__cyrcle"></div>
+      
+                       <span class="radio__container__item__text">Classic</span>
+                    </li>
+                  </ul>
+                 </div>
+            </div>
+
              <div class="radio-inputs"> 
                  <div class="main_container" style="margin: 20px 0" id="thickness">
                   <div class="canvas_menu__title">Thickness:</div>
 
                   <ul class="radio__container">
-                    <li class="radio__container__item" id="3">
+                    <li class="radio__container__item" id="3" data-text="Not available when pergola length exceeds 17 ft">
                       <div class="radio__container__item__cyrcle"></div>
 
                       <span class="radio__container__item__text">3"</span>
                      </li>
       
-                     <li class="radio__container__item" id="4">
+                     <li class="radio__container__item" id="4" data-text="Not available when pergola length exceeds 20 ft">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">4"</span>
                     </li>
 
-                     <li class="radio__container__item" id="6">
+                     <li class="radio__container__item" id="6" data-text="Only available when pergola length is between 20-24 ft">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">6"</span>
@@ -561,13 +584,13 @@ export function portalComponent() {
                   <div class="canvas_menu__title">Rafter:</div>
 
                   <ul class="radio__container">
-                    <li class="radio__container__item" id="0">
+                    <li class="radio__container__item" id="0"  data-text="Rafters appear only when Tails are enabled">
                       <div class="radio__container__item__cyrcle"></div>
 
                       <span class="radio__container__item__text" >Single</span>
                      </li>
       
-                     <li class="radio__container__item" id="1">
+                     <li class="radio__container__item" id="1" data-text="Rafters appear only when Tails are enabled">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">Double</span>
@@ -575,26 +598,6 @@ export function portalComponent() {
                   </ul>
                  </div>
               </div>
-
-             <div class="radio-inputs"> 
-                 <div class="main_container" style="margin-bottom: 20px" id="beam-size">
-                  <div class="canvas_menu__title">Beam Size:</div>
-
-                  <ul class="radio__container">
-                    <li class="radio__container__item" id="0">
-                      <div class="radio__container__item__cyrcle"></div>
-
-                      <span class="radio__container__item__text">3x8"</span>
-                     </li>
-      
-                     <li class="radio__container__item" id="1">
-                       <div class="radio__container__item__cyrcle"></div>
-      
-                       <span class="radio__container__item__text">3x5"</span>
-                    </li>
-                  </ul>
-                 </div>
-            </div>
 
              <div class="radio-inputs"> 
                  <div class="main_container" style="margin: 0" id="gutter">
@@ -650,27 +653,63 @@ export function portalComponent() {
 
 
             <div class="select-inputs"  style="display: flex; gap: 20px;">
-                <div class="type_interface_checkbox-wall_item option" id="wrap-kit" style="width: fit-content;"> 
+                <div class="type_interface_checkbox-wall_item option" id="wrap-kit" style="width: fit-content;" data-text="This option is available only with Elitewood"> 
                   <div class="type_interface_checkbox-wall_bottom">
                     <input class="type_interface_checkbox-wall_option" type="checkbox">
                     <label for="back" style="white-space: nowrap;">Pergola Wrap Kit</label>
                   </div> 
                 </div>
 
-               <div class="type_interface_checkbox-wall_item option" id="skylight"  style="width: fit-content;"> 
+               <div class="type_interface_checkbox-wall_item option" id="skylight"  style="width: fit-content;" data-text="Skylight isn't available for smaller pergolas"> 
                   <div class="type_interface_checkbox-wall_bottom">
                     <input class="type_interface_checkbox-wall_option" type="checkbox">
                     <label for="back">Skylight</label>
                   </div> 
                 </div>
 
-               <div class="type_interface_checkbox-wall_item option" id="tails"  style="width: fit-content;"> 
+               <div class="type_interface_checkbox-wall_item option" id="tails"  style="width: fit-content;" data-text="Turn on Pergola Wrap Kit to use Tails"> 
                   <div class="type_interface_checkbox-wall_bottom">
                     <input class="type_interface_checkbox-wall_option" type="checkbox">
                     <label for="back">Tails</label>
                   </div> 
                 </div>
              </div>
+            
+            <div class="select-inputs" style="margin-top: 20px" data-text="End Cut is available only with Elitewood">
+              <form class="type_interface_radio-model" id="end-cuts">
+                                 <div class="type_interface_radio-model_item option" id="1">
+                                   <input data-value="0" class="type_interface_radio-model_option ends-cut--bevel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[0]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="shade">${stringEndCuts[0]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="2">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--mitre" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[1]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[1]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="3">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--corbel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[2]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[2]}</label>
+                                 </div>
+             
+                                 <div class="type_interface_radio-model_item option" id="4">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--scallop" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[3]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[3]}</label>
+                                 </div>
+                               </form>
+            </div>
         `;
 
         break;
@@ -724,13 +763,13 @@ export function portalComponent() {
                   <div class="canvas_menu__title">Rafter:</div>
 
                   <ul class="radio__container">
-                    <li class="radio__container__item" id="0">
+                    <li class="radio__container__item" id="0" data-text="Rafters appear only when Tails are enabled">
                       <div class="radio__container__item__cyrcle"></div>
 
                       <span class="radio__container__item__text" >Single</span>
                      </li>
       
-                     <li class="radio__container__item" id="1">
+                     <li class="radio__container__item" id="1" data-text="Rafters appear only when Tails are enabled">
                        <div class="radio__container__item__cyrcle"></div>
       
                        <span class="radio__container__item__text">Double</span>
@@ -800,6 +839,42 @@ export function portalComponent() {
                     </div> 
                   </div>
               </div>
+
+                <div class="select-inputs" style="margin-top: 20px" data-text="End Cut is available only with Elitewood">
+              <form class="type_interface_radio-model" id="end-cuts">
+                                 <div class="type_interface_radio-model_item option" id="1">
+                                   <input data-value="0" class="type_interface_radio-model_option ends-cut--bevel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[0]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="shade">${stringEndCuts[0]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="2">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--mitre" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[1]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[1]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="3">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--corbel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[2]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[2]}</label>
+                                 </div>
+             
+                                 <div class="type_interface_radio-model_item option" id="4">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--scallop" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[3]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[3]}</label>
+                                 </div>
+                               </form>
+            </div>
         `;
 
         break;
@@ -816,13 +891,13 @@ export function portalComponent() {
                     <li class="radio__container__item" id="0">
                       <div class="radio__container__item__cyrcle"></div>
 
-                      <span class="radio__container__item__text">3x8"</span>
+                      <span class="radio__container__item__text">Elitewood</span>
                      </li>
       
                      <li class="radio__container__item" id="1">
                        <div class="radio__container__item__cyrcle"></div>
       
-                       <span class="radio__container__item__text">3x5"</span>
+                       <span class="radio__container__item__text">Classic</span>
                     </li>
                   </ul>
                  </div>
@@ -918,6 +993,42 @@ export function portalComponent() {
                     </ul>
                    </div>
               </div>
+
+                <div class="select-inputs" style="margin-top: 20px" data-text="End Cut is available only with Elitewood">
+              <form class="type_interface_radio-model" id="end-cuts">
+                                 <div class="type_interface_radio-model_item option" id="1">
+                                   <input data-value="0" class="type_interface_radio-model_option ends-cut--bevel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[0]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="shade">${stringEndCuts[0]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="2">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--mitre" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[1]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[1]}</label>
+                                 </div>
+               
+                                 <div class="type_interface_radio-model_item option" id="3">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--corbel" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[2]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[2]}</label>
+                                 </div>
+             
+                                 <div class="type_interface_radio-model_item option" id="4">
+                                   <input data-value="1" class="type_interface_radio-model_option ends-cut--scallop" 
+                                       type="radio" name="fav_language" value="${stringEndCuts[3]}"
+                                       style="height: 60px"
+                                       >
+                                   <label class="type_interface_radio-model_label" for="blade">${stringEndCuts[3]}</label>
+                                 </div>
+                               </form>
+            </div>
           `;
 
         break;
@@ -976,6 +1087,50 @@ export function portalComponent() {
       bladeRotation[0].title === portalContentTitle ||
       "Combo Roof Settings"
     ) {
+      // #region END-CUTS
+      // INIT END CUTS
+      portalContent.find("#end-cuts .option").each(function () {
+        const id = +$(this).attr("id");
+
+        if (id === state.endCuts) {
+          $(this).addClass("active");
+
+          setTimeout(() => {
+            $(this)
+              .closest(".interface__group")
+              .find(".interface__group__head__param")
+              .text($(this).find("input").val());
+          }, 0);
+        }
+      });
+
+      //#region HANDLE END CUTS
+      portalContent.find("#end-cuts .option").on("click", function () {
+        if ($(this).closest(".select-inputs").hasClass("disable")) {
+          return;
+        }
+        const parentItem = $(this).closest(".type_interface_radio-model_item");
+        const id = +$(this).attr("id");
+
+        state.endCuts = id;
+
+        portalContent.find("#end-cuts .option").removeClass("active");
+
+        parentItem.addClass("active");
+
+        $(parentItem)
+          .closest(".interface__group")
+          .find(".interface__group__head__param")
+          .text($(this).find("input").val());
+
+        pergola.setAddOptionWall();
+
+        pergola.update();
+      });
+      //#endregion
+
+      // #endregion
+
       // #region INIT Rain
       portalContent.find("#rain").each(function () {
         if (state.rain) {
@@ -1094,6 +1249,10 @@ export function portalComponent() {
 
           if (state.beamSize) {
             portalContent.find("#wrap-kit").addClass("disable");
+            portalContent
+              .find("#end-cuts")
+              .closest(".select-inputs")
+              .addClass("disable");
           }
         });
 
@@ -1132,6 +1291,10 @@ export function portalComponent() {
       portalContent
         .find("#thickness .radio__container__item ")
         .each(function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
 
@@ -1162,6 +1325,10 @@ export function portalComponent() {
       portalContent
         .find("#spacing .radio__container__item ")
         .on("click", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
 
@@ -1190,6 +1357,10 @@ export function portalComponent() {
       portalContent
         .find("#thickness")
         .on("click", ".radio__container__item", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$input.attr("id");
           state.thickness = id;
@@ -1219,6 +1390,10 @@ export function portalComponent() {
       portalContent
         .find("#rafter .radio__container__item ")
         .on("click", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
 
@@ -1245,6 +1420,10 @@ export function portalComponent() {
       portalContent
         .find("#overhang .radio__container__item ")
         .on("click", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
 
@@ -1267,9 +1446,17 @@ export function portalComponent() {
       portalContent
         .find("#beam-size .radio__container__item")
         .on("click", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
           portalContent.find("#wrap-kit").removeClass("disable");
+          portalContent
+            .find("#end-cuts")
+            .closest(".select-inputs")
+            .removeClass("disable");
 
           state.beamSize = id;
 
@@ -1282,12 +1469,20 @@ export function portalComponent() {
 
           if (state.beamSize) {
             state.endCuts = 1;
-            $("#end-cuts .option")
+
+            portalContent
+              .find("#end-cuts")
+              .closest(".select-inputs")
+              .addClass("disable");
+
+            portalContent
+              .find("#end-cuts .option")
               .removeClass("active")
               .eq(0)
               .addClass("active");
 
-            $("#end-cuts .option")
+            portalContent
+              .find("#end-cuts .option")
               .eq(0)
               .closest(".interface__group")
               .find(".interface__group__head__param")
@@ -1307,6 +1502,10 @@ export function portalComponent() {
       portalContent
         .find("#gutter .radio__container__item")
         .on("click", function () {
+          if ($(this).hasClass("disable")) {
+            return;
+          }
+
           const $input = $(this);
           const id = +$(this).attr("id");
 
@@ -1327,6 +1526,10 @@ export function portalComponent() {
 
       //#region HANDLE remove lettice
       portalContent.find("#remove-lettice").on("click", function () {
+        if ($(this).hasClass("disable")) {
+          return;
+        }
+
         const $input = $(this);
 
         $input.toggleClass("active");
@@ -1347,6 +1550,10 @@ export function portalComponent() {
 
       //#region HANDLE SkyLight
       portalContent.find("#skylight").on("click", function () {
+        if ($(this).hasClass("disable")) {
+          return;
+        }
+
         const $input = $(this);
 
         $input.toggleClass("active");
@@ -1359,6 +1566,9 @@ export function portalComponent() {
 
       //#region HANDLE Tails
       portalContent.find("#tails").on("click", function () {
+        if ($(this).hasClass("disable")) {
+          return;
+        }
         const $input = $(this);
 
         $input.toggleClass("active");
@@ -1393,6 +1603,9 @@ export function portalComponent() {
 
       //#region HANDLE Wrap-kit
       portalContent.find("#wrap-kit").on("click", function () {
+        if ($(this).hasClass("disable")) {
+          return;
+        }
         const $input = $(this);
 
         $input.toggleClass("active");
@@ -1425,6 +1638,9 @@ export function portalComponent() {
 
       //#region HANDLE rain
       portalContent.find("#rain").on("click", function () {
+        if ($(this).hasClass("disable")) {
+          return;
+        }
         const $input = $(this);
 
         $input.toggleClass("active");
