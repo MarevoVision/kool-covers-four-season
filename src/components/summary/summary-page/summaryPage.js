@@ -218,7 +218,7 @@ export function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Beam Size</h3>
              <div class="sum__page__main-list__info__param">${
-               !state.beamSize ? `3x8"` : `3x5"`
+               !state.beamSize ? `Elitewood` : `Classic`
              }</div>
            </div>
 
@@ -267,7 +267,7 @@ export function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Beam Size</h3>
              <div class="sum__page__main-list__info__param">${
-               !state.beamSize ? `3x8"` : `3x5"`
+               !state.beamSize ? `Elitewood` : `Classic`
              }</div>
            </div>
 

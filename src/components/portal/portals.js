@@ -825,7 +825,7 @@ export function portalComponent() {
             </div>
 
               <div class="select-inputs"  style="display: flex; gap: 20px">
-                 <div class="type_interface_checkbox-wall_item option" id="rain" style="width: fit-content;"> 
+                 <div class="type_interface_checkbox-wall_item option" id="rain" style="width: fit-content;"  data-text="Rain Shield isn't available when Fascia Mounted is active"> 
                     <div class="type_interface_checkbox-wall_bottom">
                       <input class="type_interface_checkbox-wall_option" type="checkbox">
                       <label for="back">Rain Shield</label>

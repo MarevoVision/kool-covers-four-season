@@ -60420,7 +60420,7 @@ function portalComponent() {
             </div>
 
               <div class="select-inputs"  style="display: flex; gap: 20px">
-                 <div class="type_interface_checkbox-wall_item option" id="rain" style="width: fit-content;"> 
+                 <div class="type_interface_checkbox-wall_item option" id="rain" style="width: fit-content;"  data-text="Rain Shield isn't available when Fascia Mounted is active"> 
                     <div class="type_interface_checkbox-wall_bottom">
                       <input class="type_interface_checkbox-wall_option" type="checkbox">
                       <label for="back">Rain Shield</label>
@@ -64645,7 +64645,7 @@ function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Beam Size</h3>
              <div class="sum__page__main-list__info__param">${
-               !_core_settings__WEBPACK_IMPORTED_MODULE_2__/* .state */ .wk.beamSize ? `3x8"` : `3x5"`
+               !_core_settings__WEBPACK_IMPORTED_MODULE_2__/* .state */ .wk.beamSize ? `Elitewood` : `Classic`
              }</div>
            </div>
 
@@ -64694,7 +64694,7 @@ function summaryPageComponent(container) {
            <div class="sum__page__main-list__info"> 
              <h3 class="sum__page__main-list__info__title">Beam Size</h3>
              <div class="sum__page__main-list__info__param">${
-               !_core_settings__WEBPACK_IMPORTED_MODULE_2__/* .state */ .wk.beamSize ? `3x8"` : `3x5"`
+               !_core_settings__WEBPACK_IMPORTED_MODULE_2__/* .state */ .wk.beamSize ? `Elitewood` : `Classic`
              }</div>
            </div>
 
@@ -85001,4 +85001,4 @@ module.exports = __webpack_require__.p + "eb73ba43466d6e72330e.svg";
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=main.de01b3aed47d83c34299.js.map
+//# sourceMappingURL=main.dd653662ed0a7291cdc2.js.map
