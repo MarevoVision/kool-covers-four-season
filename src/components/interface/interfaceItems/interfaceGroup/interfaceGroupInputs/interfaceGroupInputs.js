@@ -423,6 +423,14 @@ export function interfaceGroupInputsComponent(
       radioRoofTypeContent
         .find('.type_interface_radio-model_item input[type="radio"]')
         .on("change", function () {
+          if (
+            $(this)
+              .closest(".type_interface_radio-model_item")
+              .hasClass("disable")
+          ) {
+            return;
+          }
+
           // CHANGE STATE
           state.roofType = +$(this).attr("data-value");
 
@@ -2026,7 +2034,6 @@ export function interfaceGroupInputsComponent(
           if (state.electro.has(inputValue) && !init) {
             state.electro.delete(inputValue);
             deactivateInput($input);
-            console.log("delete OPTION");
           } else {
             state.electro.add(inputValue);
             activateInput($input);

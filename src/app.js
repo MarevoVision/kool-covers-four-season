@@ -10,6 +10,7 @@ import { initStateFromUrl } from "./core/customFunctions/paramsURL";
 import { shareArComponent } from "./components/shareAr/shareAr";
 import { summaryPagePortalComponent } from "./components/summary/summary-page/summary-page-portal/summaryPagePortal";
 import { getBrowserBarHeight } from "./core/customFunctions/customFunctions";
+import { disablePortalComponent } from "./components/portal/disablePortal/disablePortal";
 
 const root = "#app";
 export const mainContent = $('<main class="main-content" id="content"></main>');
@@ -20,6 +21,7 @@ $(document).ready(async () => {
   summaryPagePortalComponent(mainContent, false);
   summaryPagePortalComponent(mainContent);
   shareArComponent(mainContent);
+  disablePortalComponent(mainContent);
 
   $(root).append(mainContent);
 
@@ -38,6 +40,24 @@ $(document).ready(async () => {
     setVH();
     window.addEventListener("resize", setVH);
   }
+
+  // #region DISABLE MOBILE PORTAL
+  let disablePortalTimeout;
+
+  $("body").on("click", ".disable", function () {
+    const text = $(this).attr("data-text");
+
+    $(".disable-portal").text(text).addClass("disable-portal-v");
+
+    clearTimeout(disablePortalTimeout);
+
+    disablePortalTimeout = setTimeout(() => {
+      $(".disable-portal").removeClass("disable-portal-v");
+
+      disablePortalTimeout = null;
+    }, 2000);
+  });
+  // #endregion
 
   fixMobileViewport();
 });

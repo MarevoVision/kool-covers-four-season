@@ -106,6 +106,14 @@
     left: auto;
   }
 
+  .disable-portal {
+    opacity: 0.65;
+  }
+
+  .disable-portal-v {
+    display: block !important;
+  }
+
   .canvas_buttons {
     justify-content: normal;
     right: 16px;
@@ -120,7 +128,8 @@
     box-shadow: 0px 0px 20px 0px #d9deda99;
     left: 0 !important;
     right: 0;
-    border-radius: 12px 12px 0 0;
+    border-radius: 0 !important;
+    top: 10%;
 
     &-wrapp {
       height: 50%;
