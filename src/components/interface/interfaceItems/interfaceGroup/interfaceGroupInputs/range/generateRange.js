@@ -352,37 +352,37 @@ export function generateRangeHTML(range) {
     $rangeInputId.on("input", async function (event) {
       state.length = +event.target.value;
 
-      if (state.roofType === 1) {
-        $("#thickness .radio__container__item ").each(function () {
-          const $input = $(this);
-          const id = +$(this).attr("id");
+      // if (state.roofType === 1) {
+      //   $("#thickness .radio__container__item ").each(function () {
+      //     const $input = $(this);
+      //     const id = +$(this).attr("id");
 
-          $input.removeClass("disable");
-          $input.removeClass("active");
+      //     $input.removeClass("disable");
+      //     $input.removeClass("active");
 
-          //LOGIC FOR SOLID
-          switch (true) {
-            case id === 3 && state.length > 16 && state.length <= 20:
-              $input.addClass("disable");
-              $input.removeClass("active");
+      //     // //LOGIC FOR SOLID
+      //     // switch (true) {
+      //     //   case id === 3 && state.length > 16 && state.length <= 20:
+      //     //     $input.addClass("disable");
+      //     //     $input.removeClass("active");
 
-              state.thickness = state.thickness === 3 ? 4 : state.thickness;
-              break;
+      //     //     state.thickness = state.thickness === 3 ? 4 : state.thickness;
+      //     //     break;
 
-            case id === 3 && 20 < state.length:
-            case id === 4 && 20 < state.length:
-              $input.addClass("disable");
-              $input.removeClass("active");
+      //     //   case id === 3 && 20 < state.length:
+      //     //   case id === 4 && 20 < state.length:
+      //     //     $input.addClass("disable");
+      //     //     $input.removeClass("active");
 
-              state.thickness = 6;
-              break;
-          }
+      //     //     state.thickness = 6;
+      //     //     break;
+      //     // }
 
-          if (id === state.thickness) {
-            $input.addClass("active");
-          }
-        });
-      }
+      //     if (id === state.thickness) {
+      //       $input.addClass("active");
+      //     }
+      //   });
+      // }
 
       pergola.update();
     });

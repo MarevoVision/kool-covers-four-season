@@ -35,12 +35,12 @@
       @include mixins.disabled-pop;
     }
 
+    &:hover {
+      transform: translateY(0) !important;
+    }
+
     &.active {
       pointer-events: none;
-
-      &:hover {
-        transform: translateY(0) !important;
-      }
 
       .type_interface_radio-model_option {
         @include mixins.box-border(10, rgba(vars.$second-color, 0.7));
@@ -170,9 +170,6 @@
     @include mixins.h3;
 
     &.active {
-      &:hover {
-        transform: translateY(0) !important;
-      }
 
       .type_interface_checkbox-wall_option {
         background-image: url(/public/img/icons/checkbox-active.svg);
@@ -194,7 +191,6 @@
       opacity: 0.65;
       // pointer-events: none;
       cursor: not-allowed;
-
 
       @include mixins.disabled-pop;
     }
@@ -506,9 +502,6 @@
 
   &_item {
     &.active {
-      &:hover {
-        transform: translateY(0) !important;
-      }
 
       .image-container {
         position: relative;
@@ -601,9 +594,6 @@
     }
 
     &--active {
-      &:hover {
-        transform: translateY(0) !important;
-      }
 
       .image-container {
         @include mixins.box-border(
@@ -687,9 +677,6 @@
 
   &_item {
     &--active {
-      &:hover {
-        transform: translateY(0) !important;
-      }
 
       .image-container {
         @include mixins.box-border(

@@ -99,9 +99,15 @@ export function summaryPageComponent(container) {
   //   typeof state.colorBody === "string" &&
   //   /\.(jpe?g|png|webp)$/i.test(state.colorBody);
 
+  function isHex(str) {
+    return /^[0-9a-fA-F]+$/.test(str);
+  }
+
   const styleFrame = `background-color: ${state.colorBody}; background-size: cover; background-position: center;`;
   const styleRoofLettice = `background-color: ${state.colorRoof}; background-size: cover; background-position: center;`;
-  const styleRoofSolid = `background-color: ${state.colorRoofSolid}; background-size: cover; background-position: center;`;
+  const styleRoofSolid = `background-color: ${
+    state.colorRoofSolid.includes(".") ? "#A56025" : state.colorRoofSolid
+  };   background-size: cover; background-position: center;`;
 
   const summaryContent = $(`
     <div id="summary-content">

@@ -39,7 +39,7 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
     setTimeout(() => {
       componentContent.find(".interface__group__inputs").append(`
         <div class="select-inputs">
-               <div class="type_interface_checkbox-wall_item option" id="steel"> 
+               <div class="type_interface_checkbox-wall_item option disable-steel" id="steel" data-text="This option is available only with Elitewood"> 
                   <div class="type_interface_checkbox-wall_bottom">
                     <input class="type_interface_checkbox-wall_option" type="checkbox">
                     <label for="back">Steel Inserts</label>
@@ -56,10 +56,18 @@ export function interfaceGroupComponent(title = "empty", param = "empty") {
         if (state.ab) {
           $(this).addClass(activeClass);
         }
+
+        if (state.beamSize) {
+          $("#steel").addClass("disable");
+        }
       });
 
       //HANDLE STEEL HEADER
       componentContent.find("#steel").on("click", function () {
+        if ($("#steel").hasClass("disable")) {
+          return;
+        }
+
         $(this).toggleClass(activeClass);
         state.ab = !state.ab;
 

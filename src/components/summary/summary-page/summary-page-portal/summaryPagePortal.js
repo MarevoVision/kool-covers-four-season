@@ -4,6 +4,7 @@ import "jquery-validation";
 import { createPDF } from "../../../../core/customFunctions/createPDF";
 import {
   GetGroup,
+  GetMesh,
   pergola,
   toggleBackWall,
   toggleLeftWall,
@@ -215,8 +216,15 @@ I consent to Kool Covers using my personal information for sales, marketing, res
 
       if (!downloadPDF) {
         toggleLoad(true);
+        GetMesh("beam_wall_L").visible = false;
+        GetMesh("beam_wall_L001").visible = false;
 
         await createPDF("download");
+
+        GetMesh("beam_wall_L").visible =
+          state.leftWall && state.wallOption === 2;
+        GetMesh("beam_wall_L001").visible =
+          state.rightWall && state.wallOption === 2;
 
         html.hide();
 

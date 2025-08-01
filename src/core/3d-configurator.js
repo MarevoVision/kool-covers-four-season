@@ -295,7 +295,7 @@ const PergolaRoofRafters = {
   single: 0,
   double: 1,
 };
-
+// inch
 const PergolaRoofSpacing = {
   _2inch: 0,
   _3inch: 1,
@@ -4692,14 +4692,17 @@ export class PergolaObject {
                     system.prevState.width !== state.width ||
                     system.prevState.slatsSize !== state.slatsSize ||
                     system.prevState.length !== state.length ||
-                    system.prevState.height !== state.height;
+                    system.prevState.height !== state.height ||
+                    system.prevState.systemsUrlSize !==
+                      state.subSystemUrl.length;
+
+                  const zipPost = !system.direction
+                    ? system.object.getObjectByName("post_3x3003")
+                    : system.object.getObjectByName("post_3x3004");
+                  this.changeObjectVisibility(false, zipPost);
 
                   if (hasChanged) {
                     const material = system.object.children[1].material;
-                    const zipPost = !system.direction
-                      ? system.object.getObjectByName("post_3x3003")
-                      : system.object.getObjectByName("post_3x3004");
-                    this.changeObjectVisibility(false, zipPost);
 
                     material.color.set(state.colorZip);
                     system.object.children[0].material.color.set(
@@ -4718,6 +4721,7 @@ export class PergolaObject {
                       width: state.width,
                       length: state.length,
                       height: state.height,
+                      systemsUrlSize: state.subSystemUrl.length,
                     };
                   }
                 }
@@ -5326,24 +5330,28 @@ export class PergolaObject {
     }
 
     const fansBeam = this.fansBeam;
-    let offsetLed = null;
 
-    switch (true) {
-      case state.skyLight:
-        offsetLed = 0.4;
-        break;
+    // switch (true) {
+    //   case state.skyLight:
+    //     offsetLed = 0.4;
+    //     break;
 
-      case state.directionRoof:
-        offsetLed = this.getMeters(state.length) * 0.1;
-        break;
+    //   case state.directionRoof:
+    //     offsetLed = this.getMeters(state.length) * 0.1;
+    //     break;
 
-      default:
-        offsetLed = this.getMeters(state.width) * 0.2;
-        break;
-    }
+    //   default:
+    //     offsetLed = this.getMeters(state.width) * 0.2;
+    //     break;
+    // }
 
     //#region BEAM X
     if (!state.directionRoof) {
+      const indexSize = state.length <= 6 ? 0.2 : 0.3;
+      let offsetLed =
+        (this.getMeters(state.length) / allPointsForLouversZ.length) *
+        indexSize;
+
       for (let i = 0; i < allPointsForLouversZ.length; i++) {
         const pointZ = allPointsForLouversZ[i].z;
 
@@ -5362,8 +5370,8 @@ export class PergolaObject {
 
             if (state.electro.has(pergolaConst.optionNameString.LEDRampLight)) {
               // #region first led
-              elementPoinLight.object.position.x = pointX + offsetLed;
-              elementPoinLight.object.position.z = pointZ;
+              elementPoinLight.object.position.x = pointX;
+              elementPoinLight.object.position.z = pointZ + offsetLed;
 
               elementPoinLight.object.visible = true;
               elementPoinLight.object.children.forEach(
@@ -5374,8 +5382,8 @@ export class PergolaObject {
               //#endregion
 
               // #region second led
-              elementPoinLightDif.object.position.x = pointX - offsetLed;
-              elementPoinLightDif.object.position.z = pointZ;
+              elementPoinLightDif.object.position.x = pointX;
+              elementPoinLightDif.object.position.z = pointZ - offsetLed;
 
               elementPoinLightDif.object.visible = true;
               elementPoinLightDif.object.children.forEach(
@@ -5481,6 +5489,9 @@ export class PergolaObject {
         }
       }
     } else {
+      let offsetLed =
+        (this.getMeters(state.length) / allPointsForLouversZ.length) * 0.3;
+
       const preparedPointX = allPointsForFansX
         .filter((_, i) => i % 2 === 0)
         .slice(0, qntyFans);
@@ -6757,7 +6768,7 @@ export class PergolaObject {
       );
 
       this.setLatticePosition(
-        pointLatticeX,
+        state.wallOption === 2 ? pointLatticeX.slice(4) : pointLatticeX,
         false,
         COMBO_LATTICE_CENTER_point.x - 0.05
       );
@@ -7562,6 +7573,11 @@ export class PergolaObject {
   }
 
   setRoof() {
+    const xTalScreen = state.width / 10;
+    const zTalScreen = state.length / 10 / 4;
+
+    ChangeMaterialTilling("roof_wrap", xTalScreen, zTalScreen);
+
     this.changeRoofVisibility(false, "rafterBevelSingle", null, true);
     this.changeRoofVisibility(false, "rafterBevelDouble", null, true);
 
@@ -7752,10 +7768,11 @@ export class PergolaObject {
 
       switch (true) {
         case typeLattice:
-          console.log("typeLattice RAFTER");
+          const preparePoints =
+            state.wallOption === 2 ? pointForRafter.slice(1) : pointForRafter;
 
           state.directionRoof
-            ? this.setBeamsPosition(pointForRafter, rafterType, false, true)
+            ? this.setBeamsPosition(preparePoints, rafterType, false, true)
             : this.setBeamsPosition(pointForRafter, rafterType, true);
           break;
 
@@ -7818,9 +7835,21 @@ export class PergolaObject {
 
         // LATTICE Y
         if (state.directionRoof) {
-          this.setLatticePosition(pointLatticeY, true);
+          let preparedPointsY = pointLatticeY;
+
+          if (state.rightWall && state.wallOption === 2) {
+            preparedPointsY = preparedPointsY.slice(0, -3);
+          }
+
+          if (state.leftWall && state.wallOption === 2) {
+            preparedPointsY = preparedPointsY.slice(3);
+          }
+
+          this.setLatticePosition(preparedPointsY, true);
         } else {
-          this.setLatticePosition(pointLatticeX);
+          this.setLatticePosition(
+            state.wallOption === 2 ? pointLatticeX.slice(4) : pointLatticeX
+          );
         }
 
         break;
@@ -9509,14 +9538,27 @@ export class PergolaObject {
     return null;
   }
 
-  selectInterval(type = 0) {
+  selectInterval(type) {
     let intervalWidth = 0;
     let intervalLength = 0;
     let maxLouver = 0;
     let widthLouver = 0;
 
+    const thicknessInterval = {
+      3: 16.05,
+      4: 20.05,
+      6: 24.05,
+    };
+
     switch (type) {
-      case 0:
+      case 1:
+        intervalLength = thicknessInterval[state.thickness];
+        intervalWidth = state.ab ? 20.5 : !state.beamSize ? 12.5 : 10.5;
+
+        console.log(intervalLength, "INTERVAL L");
+        break;
+
+      default:
         intervalLength = state.roofType === 1 ? 16.5 : 12.5;
         intervalWidth = state.ab ? 20.5 : !state.beamSize ? 12.5 : 10.5;
 
@@ -9524,11 +9566,6 @@ export class PergolaObject {
 
         maxLouver = 15;
         widthLouver = 0.266425 / 1.2;
-
-        break;
-
-      default:
-        console.log(`not have type`);
 
         break;
     }
@@ -9542,7 +9579,9 @@ export class PergolaObject {
   }
 
   changeDemisionParams() {
-    const { intervalWidth, intervalLength } = this.selectInterval();
+    const { intervalWidth, intervalLength } = this.selectInterval(
+      state.roofType
+    );
 
     state.postWidthInterval = intervalWidth;
     state.postDepthInterval = intervalLength;
@@ -10026,7 +10065,9 @@ export class PergolaObject {
           // element.object.position.y = 0.05;
 
           if (state.roofType === PergolaRoofType.Combo) {
-            element.object.position.x = COMBO_LATTICE_CENTER_point.x;
+            element.object.position.x =
+              COMBO_LATTICE_CENTER_point.x +
+              this.inchesToMeters(state.overhang) / 3;
           }
 
           // if (state.roofType === PergolaRoofType.Louvered) {
@@ -10748,7 +10789,7 @@ export class PergolaObject {
     );
 
     const targetValueWidthBeam = ConvertMorphValue(
-      width / 2.05,
+      width / 2.05 - this.inchesToMeters(state.overhang),
       MORPH_DATA.width.min,
       MORPH_DATA.width.max
     );
@@ -10772,7 +10813,7 @@ export class PergolaObject {
     );
 
     const targetValueFanBeamWidth = ConvertMorphValue(
-      this.getMeters(width) - this.inchesToMeters(state.overhang / 2),
+      this.getMeters(width) - this.inchesToMeters(state.overhang),
       this.getMeters(MORPH_DATA.width.min),
       this.getMeters(MORPH_DATA.width.max)
     );

@@ -1298,22 +1298,22 @@ export function portalComponent() {
           const $input = $(this);
           const id = +$(this).attr("id");
 
-          //LOGIC FOR SOLID
-          if (state.roofType === 1) {
-            switch (true) {
-              case id === 3 && state.length > 16 && state.length <= 20:
-                $input.addClass("disable");
+          // //LOGIC FOR SOLID
+          // if (state.roofType === 1) {
+          //   switch (true) {
+          //     case id === 3 && state.length > 16 && state.length <= 20:
+          //       $input.addClass("disable");
 
-                state.thickness = state.thickness === 3 ? 4 : state.thickness;
-                break;
+          //       state.thickness = state.thickness === 3 ? 4 : state.thickness;
+          //       break;
 
-              case id === 3 && 20 < state.length:
-              case id === 4 && 20 < state.length:
-                $input.addClass("disable");
-                state.thickness = 6;
-                break;
-            }
-          }
+          //     case id === 3 && 20 < state.length:
+          //     case id === 4 && 20 < state.length:
+          //       $input.addClass("disable");
+          //       state.thickness = 6;
+          //       break;
+          //   }
+          // }
 
           if (id === state.thickness) {
             $input.addClass("active");
@@ -1489,6 +1489,25 @@ export function portalComponent() {
               .text($("#end-cuts .option").eq(0).find("input").val());
 
             portalContent.find("#wrap-kit").addClass("disable");
+
+            $("#Black").closest(".option").css("display", "none");
+            $("#Gray").closest(".option").css("display", "none");
+
+            if (
+              state.colorBody === "#060012" ||
+              state.colorBody === "#5d6970"
+            ) {
+              $("#Bronze").closest(".option").trigger("click");
+            }
+
+            $("#steel").addClass("disable");
+            $("#steel").removeClass("active");
+            state.steel = false;
+          } else {
+            $("#steel").removeClass("disable");
+
+            $("#Black").closest(".option").css("display", "block");
+            $("#Gray").closest(".option").css("display", "block");
           }
 
           $input.addClass("active");

@@ -2,6 +2,7 @@ import $ from "jquery";
 import * as THREE from "three";
 import {
   ChangeGlobalMorph,
+  ChangeMaterialTilling,
   GetMesh,
   hideIcon,
   materialSolid,
@@ -129,6 +130,19 @@ export function updateTextParam(
     .find(".interface__group__head__param")
     .text(displayText);
 }
+let textureWood = null;
+
+const loader = new THREE.TextureLoader();
+loader.load("public/img/textures/wood_golden_oak.jpg", (texture) => {
+  texture.flipY = false;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2); // або інші значення
+  texture.offset.set(0.1, 0.2);
+  texture.center.set(0.5, 0.5); // обертання навколо центру
+  texture.rotation = Math.PI / 2;
+  textureWood = texture;
+});
 
 export function updateMaterialMap(mesh, hex = false) {
   if (mesh?.material) {
@@ -151,6 +165,11 @@ export function updateMaterialMap(mesh, hex = false) {
 
       if (state.roofType === 1 && hex === "#CAC6C5") {
         mesh.material.normalMap = materialSolid;
+      }
+
+      if (hex === "#A56025") {
+        mesh.material.map = textureWood;
+        mesh.material.needsUpdate = true;
       }
     }
   }
@@ -198,7 +217,7 @@ export function interfaceGroupInputsComponent(
 
       //REDIRECT LOGIC
       const azenco = radioModelInputs.find(".option").eq(0);
-      const fourSeason = radioModelInputs.find(".option").eq(1);
+      // const fourSeason = radioModelInputs.find(".option").eq(1);
       const fourK = radioModelInputs.find(".option").eq(2);
 
       azenco.on("click", function () {
@@ -206,6 +225,11 @@ export function interfaceGroupInputsComponent(
           "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/azenco/dist/index.html";
         window.location.href = link;
       });
+      // fourSeason.on("click", function () {
+      //   const link =
+      //     "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/four-season/dist/index.html";
+      //   window.location.href = link;
+      // });
       fourK.on("click", function () {
         const link =
           "https://s3.eu-central-1.amazonaws.com/marevo.vision/RelevantProjects/webAR/Marevo-OM/Kool+Covers+-+links/4k/dist/index.html";
@@ -377,6 +401,8 @@ export function interfaceGroupInputsComponent(
           const typeSolid = state.roofType === 1;
           const typeCombo = state.roofType === 2;
 
+          $("#steel").removeClass("disable");
+
           hideIcon(10);
           hideIcon(11);
           hideIcon(12);
@@ -392,12 +418,19 @@ export function interfaceGroupInputsComponent(
             showIcon(10);
             state.rain = false;
             state.directionRoof = false;
+            if (state.beamSize) {
+              $("#steel").addClass("disable");
+            }
           }
 
           if (typeCombo) {
             showIcon(12);
             state.rain = false;
             state.directionRoof = false;
+
+            if (state.beamSize) {
+              $("#steel").addClass("disable");
+            }
             // state.beamSize = 1;
           }
 
@@ -468,7 +501,7 @@ export function interfaceGroupInputsComponent(
             $("#solid").hide();
             $("#lettice .option")
               .eq($("#lettice .option").length - 1)
-              .trigger("change");
+              .trigger("click");
             window.colorLattice();
           }
 
@@ -489,9 +522,8 @@ export function interfaceGroupInputsComponent(
             state.endCuts = 1;
             state.thickness = 3;
             state.rain = false;
-            $("#solid .option")
-              .eq($("#lettice .option").length)
-              .trigger("change");
+
+            $("#solid .option").eq(0).trigger("click");
 
             window.colorSolidInit(false);
           }
@@ -504,6 +536,8 @@ export function interfaceGroupInputsComponent(
             ChangeGlobalMorph("3-6", 1.65);
 
             state.rain = false;
+            window.colorSolidInit(false);
+
             $("#solid .option")
               .eq($("#lettice .option").length)
               .trigger("change");
@@ -1036,7 +1070,7 @@ export function interfaceGroupInputsComponent(
           value: "Adobe",
           image: "adobe.png",
           id: "Adobe",
-          hex: "#998F7A",
+          hex: "#b49f84",
         },
         {
           name: "Wheat",
@@ -1059,6 +1093,13 @@ export function interfaceGroupInputsComponent(
           id: "Bronze",
           hex: "#58544F",
         },
+        {
+          name: "Wood Grain",
+          value: "Wood Grain",
+          image: "public/img/textures/wood_golden_oak.jpg",
+          id: "Wood Grain",
+          hex: "#A56025",
+        },
       ];
 
       const colorsRoofLettice = [
@@ -1074,7 +1115,7 @@ export function interfaceGroupInputsComponent(
           value: "Adobe",
           image: "adobe.png",
           id: "Adobe",
-          hex: "#998F7A",
+          hex: "#b49f84",
         },
         {
           name: "Wheat",
@@ -1133,7 +1174,7 @@ export function interfaceGroupInputsComponent(
           value: "Adobe",
           image: "adobe.png",
           id: "Adobe",
-          hex: "#998F7A",
+          hex: "#b49f84",
         },
         {
           name: "Wheat",
@@ -1177,16 +1218,33 @@ export function interfaceGroupInputsComponent(
           id: "Black",
           hex: "#060012",
         },
+        {
+          name: "Bronze",
+          value: "Bronze",
+          image: "bronze.png",
+          id: "Bronze",
+          hex: "#5D5853",
+        },
       ];
 
       const colorItemsRoofSolid = colorsRoofSolid
         .map(
           (color) => `
-        <div class="type_interface_colors-buttons_item option" data-hex="${color.hex}">
+        <div class="type_interface_colors-buttons_item option" data-hex="${
+          color.hex
+        }">
           <label class="type_interface_colors-buttons_label">
-            <div class="image-container" style="background-color: ${color.hex}"></div>
+            <div class="image-container" style="background-color: ${
+              color.hex
+            };  ${
+            color.name === "Wood Grain"
+              ? `background-image: url('${color.image}')`
+              : ""
+          }"></div>
             <span class="color-name">${color.name}</span>
-            <input class="type_interface_colors-buttons_option" type="radio" id="${color.id}" name="fav_language" value="${color.value}">
+            <input class="type_interface_colors-buttons_option" type="radio" id="${
+              color.id
+            }" name="fav_language" value="${color.value}">
           </label>
         </div>
       `
@@ -1310,10 +1368,32 @@ export function interfaceGroupInputsComponent(
           pergola.update();
         });
 
+        setTimeout(() => {
+          if (state.beamSize) {
+            frameColorContent
+              .find("#Black")
+              .closest(".option")
+              .css("display", "none");
+            frameColorContent
+              .find("#Gray")
+              .closest(".option")
+              .css("display", "none");
+          } else {
+            frameColorContent
+              .find("#Black")
+              .closest(".option")
+              .css("display", "block");
+            frameColorContent
+              .find("#Gray")
+              .closest(".option")
+              .css("display", "block");
+          }
+        }, 2000);
+
         //#endregion
 
         //#region HANDLE ROOF INPUTS
-        frameColorContent.find(".option").on("change", function () {
+        frameColorContent.find(".option").on("click", function () {
           const $this = $(this);
           const hex = $(this).attr("data-hex");
 
@@ -1378,7 +1458,7 @@ export function interfaceGroupInputsComponent(
         // Normalize state values
         const normalizedSolidColor = (() => {
           const match = state.colorRoofSolid?.match(/\/public\/.+$/);
-          return match ? match[0] : state.colorRoofSolid;
+          return match ? "#A56025" : state.colorRoofSolid;
         })();
 
         const normalizedLatticeColor = (() => {
@@ -1398,12 +1478,19 @@ export function interfaceGroupInputsComponent(
             const $imgContainer = $item.find(".image-container");
 
             const bgColor = $imgContainer.css("background-color");
-            const bgImage = $imgContainer.css("background-image");
+            const bgImage = "none";
 
             const inputColorValue = extractImagePath(bgImage, bgColor);
             const nameOfColor = $this.find("input").val();
 
             $item.removeClass(activeColorClass);
+
+            console.log(
+              "inputCOLOR:",
+              inputColorValue,
+              "normalize:",
+              normalizedSolidColor
+            );
 
             if (inputColorValue === normalizedSolidColor) {
               $item.addClass(activeColorClass);
@@ -1484,7 +1571,7 @@ export function interfaceGroupInputsComponent(
         window.colorLattice();
 
         //#region HANDLE SOLID INPUTS
-        roofColorContent.find("#solid .option").on("change", function () {
+        roofColorContent.find("#solid .option").on("click", function () {
           console.log("CLICK ON COLOR SOLID");
 
           const $this = $(this);
@@ -1532,7 +1619,7 @@ export function interfaceGroupInputsComponent(
         // #endregion
 
         //#region HANDLE LATTICE INPUTS
-        roofColorContent.find("#lettice .option").on("change", function () {
+        roofColorContent.find("#lettice .option").on("click", function () {
           console.log("CLICK ON COLOR LATTICE");
 
           const $this = $(this);
